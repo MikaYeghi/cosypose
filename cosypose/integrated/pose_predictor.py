@@ -9,6 +9,7 @@ import cosypose.utils.tensor_collection as tc
 from cosypose.utils.logging import get_logger
 from cosypose.utils.timer import Timer
 logger = get_logger(__name__)
+import pdb
 
 
 class CoarseRefinePosePredictor(torch.nn.Module):
@@ -23,7 +24,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         self.eval()
 
     @torch.no_grad()
-    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):
+    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):        # FINAL COARSE POSE PREDICTIONS ARE MADE HERE
         timer = Timer()
         timer.start()
 
@@ -42,7 +43,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             K_ = K[im_ids]
             TCO_input = obj_inputs.poses
             outputs = model(images=images_, K=K_, TCO=TCO_input,
-                            n_iterations=n_iterations, labels=labels)
+                            n_iterations=n_iterations, labels=labels)       # NEED TO FIGURE OUT WHAT ARE ADDITIONAL OUTPUT PARAMETERS AND REPLACE THEM HERE
             timer.pause()
             for n in range(1, n_iterations+1):
                 iter_outputs = outputs[f'iteration={n}']
@@ -54,6 +55,8 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                                                         K_crop=iter_outputs['K_crop'],
                                                         boxes_rend=iter_outputs['boxes_rend'],
                                                         boxes_crop=iter_outputs['boxes_crop'])
+                for x in range(batch_preds.poses.shape[0]): # randomly change prediction poses
+                    batch_preds.poses[x][0:3, 0:3] = torch.rand(3, 3).cuda()
                 preds[f'iteration={n}'].append(batch_preds)
 
         logger.debug(f'Pose prediction on {len(obj_data)} detections (n_iterations={n_iterations}): {timer.stop()}')
@@ -62,7 +65,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             preds[k] = tc.concatenate(v)
         return preds
 
-    def make_TCO_init(self, detections, K):
+    def make_TCO_init(self, detections, K):     # INITIAL POSE TRANSLATIONS ARE SET HERE
         K = K[detections.infos['batch_im_id'].values]
         boxes = detections.bboxes
         if self.coarse_model.cfg.init_method == 'z-up+auto-depth':
