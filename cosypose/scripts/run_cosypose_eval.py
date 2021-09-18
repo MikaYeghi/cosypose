@@ -291,7 +291,7 @@ def main():
         coarse_run_id = 'tless-coarse--10219'
         refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
-        n_refiner_iterations = 4
+        n_refiner_iterations = 10
     elif 'ycbv' in args.config:
         object_set = 'ycbv'
         refiner_run_id = 'ycbv-refiner-finetune--251020'
@@ -430,7 +430,11 @@ def main():
             logger.info(f"Evaluation : {preds_k} (N={len(preds)})")
             if len(preds) == 0:
                 preds = eval_runner.make_empty_predictions()
-            eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds)
+            try:
+                eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds)
+                print("Successfully evaluated!")
+            except Exception:
+                print("Not enough memory, skipping this one...")
             preds.cpu()
         else:
             logger.info(f"Skipped: {preds_k} (N={len(preds)})")
