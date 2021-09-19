@@ -24,9 +24,10 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         self.eval()
 
     @torch.no_grad()
-    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):        # FINAL COARSE POSE PREDICTIONS ARE MADE HERE
+    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):
         timer = Timer()
         timer.start()
+        number_of_repeats = 4
 
         ids = torch.arange(len(obj_data))
 
@@ -36,14 +37,14 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         preds = defaultdict(list)
         for (batch_ids, ) in dl:
             timer.resume()
-            obj_inputs = obj_data[batch_ids.numpy()]
+            obj_inputs = obj_data[batch_ids.numpy().repeat(number_of_repeats)] # repeat each object predictions
             labels = obj_inputs.infos['label'].values
             im_ids = obj_inputs.infos['batch_im_id'].values
             images_ = images[im_ids]
             K_ = K[im_ids]
             TCO_input = obj_inputs.poses
             outputs = model(images=images_, K=K_, TCO=TCO_input,
-                            n_iterations=n_iterations, labels=labels)       # NEED TO FIGURE OUT WHAT ARE ADDITIONAL OUTPUT PARAMETERS AND REPLACE THEM HERE
+                            n_iterations=n_iterations, labels=labels)
             timer.pause()
             for n in range(1, n_iterations+1):
                 iter_outputs = outputs[f'iteration={n}']
@@ -65,7 +66,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             preds[k] = tc.concatenate(v)
         return preds
 
-    def make_TCO_init(self, detections, K):     # INITIAL POSE TRANSLATIONS ARE SET HERE
+    def make_TCO_init(self, detections, K): # INITIAL POSE TRANSLATIONS ARE SET HERE
         K = K[detections.infos['batch_im_id'].values]
         boxes = detections.bboxes
         if self.coarse_model.cfg.init_method == 'z-up+auto-depth':
