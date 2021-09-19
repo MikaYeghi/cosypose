@@ -291,7 +291,7 @@ def main():
         coarse_run_id = 'tless-coarse--10219'
         refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
-        n_refiner_iterations = 10
+        n_refiner_iterations = 4
     elif 'ycbv' in args.config:
         object_set = 'ycbv'
         refiner_run_id = 'ycbv-refiner-finetune--251020'
