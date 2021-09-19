@@ -27,7 +27,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
     def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):
         timer = Timer()
         timer.start()
-        number_of_repeats = 10 # Make 10 random guesses of initial position
+        number_of_repeats = 5 # Make 10 random guesses of initial position
 
         ids = torch.arange(len(obj_data))
 
