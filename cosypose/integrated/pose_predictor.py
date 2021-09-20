@@ -27,7 +27,6 @@ class CoarseRefinePosePredictor(torch.nn.Module):
     def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):
         timer = Timer()
         timer.start()
-        number_of_repeats = 2 # Make 2 random guesses of initial position
 
         ids = torch.arange(len(obj_data))
 
@@ -37,7 +36,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         preds = defaultdict(list)
         for (batch_ids, ) in dl:
             timer.resume()
-            obj_inputs = obj_data[batch_ids.numpy().repeat(number_of_repeats)] # repeat each object predictions
+            obj_inputs = obj_data[batch_ids.numpy()]
             labels = obj_inputs.infos['label'].values
             im_ids = obj_inputs.infos['batch_im_id'].values
             images_ = images[im_ids]
