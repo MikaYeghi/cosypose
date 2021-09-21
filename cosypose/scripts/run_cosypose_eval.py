@@ -218,7 +218,7 @@ def get_pose_meters(scene_ds):
     return meters
 
 
-def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tless'):
+def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tless', scene_ds=None):
     if object_set == 'tless':
         object_ds_name, urdf_ds_name = 'tless.bop', 'tless.cad'
     else:
@@ -250,7 +250,8 @@ def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tle
     coarse_model = load_model(coarse_run_id)
     refiner_model = load_model(refiner_run_id)
     model = CoarseRefinePosePredictor(coarse_model=coarse_model,
-                                      refiner_model=refiner_model)
+                                      refiner_model=refiner_model,
+                                      scene_ds=scene_ds)
     return model, mesh_db
 
 
@@ -291,7 +292,7 @@ def main():
         coarse_run_id = 'tless-coarse--10219'
         refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
-        n_refiner_iterations = 4
+        n_refiner_iterations = 0
     elif 'ycbv' in args.config:
         object_set = 'ycbv'
         refiner_run_id = 'ycbv-refiner-finetune--251020'
@@ -338,7 +339,7 @@ def main():
         scene_ds.frame_index = scene_ds.frame_index[mask].reset_index(drop=True)[:n_frames]
 
     # Predictions
-    predictor, mesh_db = load_models(coarse_run_id, refiner_run_id, n_workers=n_plotters, object_set=object_set)
+    predictor, mesh_db = load_models(coarse_run_id, refiner_run_id, n_workers=n_plotters, object_set=object_set, scene_ds=scene_ds)
 
     mv_predictor = MultiviewScenePredictor(mesh_db)
 

@@ -9,19 +9,48 @@ import cosypose.utils.tensor_collection as tc
 from cosypose.utils.logging import get_logger
 from cosypose.utils.timer import Timer
 logger = get_logger(__name__)
+from cosypose.datasets.samplers import DistributedSceneSampler
+from cosypose.utils.distributed import get_world_size, get_rank
+from cosypose.evaluation.data_utils import parse_obs_data
 import pdb
+from tqdm import tqdm
+import numpy as np
+from math import sqrt
 
 
 class CoarseRefinePosePredictor(torch.nn.Module):
     def __init__(self,
                  coarse_model=None,
                  refiner_model=None,
-                 bsz_objects=64):
+                 bsz_objects=64,
+                 scene_ds=None):
         super().__init__()
         self.coarse_model = coarse_model
         self.refiner_model = refiner_model
         self.bsz_objects = bsz_objects
+        # self.scene_ds = []
+        # for x in tqdm(scene_ds):
+        #     self.scene_ds.append(x[2])
+        self.rank = get_rank()
+        self.world_size = get_world_size()
+        sampler = DistributedSceneSampler(scene_ds,
+                                              num_replicas=self.world_size,
+                                              rank=self.rank,
+                                              shuffle=True)
+        dataloader = DataLoader(scene_ds, batch_size=64,
+                                num_workers=4,
+                                sampler=sampler, collate_fn=self.collate_fn)
+        self.dataloader = list(tqdm(dataloader))
         self.eval()
+    
+    def collate_fn(self, batch):
+        obj_data = []
+        for data_n in batch:
+            _, _, obs = data_n
+            obj_data_ = parse_obs_data(obs)
+            obj_data.append(obj_data_)
+        obj_data = tc.concatenate(obj_data)
+        return obj_data
 
     @torch.no_grad()
     def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):
@@ -55,8 +84,32 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                                                         K_crop=iter_outputs['K_crop'],
                                                         boxes_rend=iter_outputs['boxes_rend'],
                                                         boxes_crop=iter_outputs['boxes_crop'])
-                for x in range(batch_preds.poses.shape[0]): # randomly change prediction poses
-                    batch_preds.poses[x][0:3, 0:3] = torch.rand(3, 3).cuda()
+                # for x in range(batch_preds.poses.shape[0]): # randomly change prediction poses
+                #     batch_preds.poses[x][0:3, 0:3] = torch.rand(3, 3).cuda()
+
+                # Now rewrite predictions to ground truth
+                my_counter = 0
+                found = False
+                while my_counter < len(batch_preds):
+                    i = 0
+                    found = False
+                    while i < len(self.dataloader) and not found:
+                        pred_scene_id = batch_preds[my_counter].infos[0]
+                        pred_view_id = batch_preds[my_counter].infos[1]
+                        for j in np.where((self.dataloader[i].infos.scene_id == pred_scene_id) & (self.dataloader[i].infos.view_id == pred_view_id))[0]:
+                            gt_view_id = self.dataloader[i][j].infos[4]
+                            gt_obj_label = self.dataloader[i][j].infos[1]
+                            pred_obj_label = batch_preds[my_counter].infos[3]
+                            if gt_view_id == pred_view_id and gt_obj_label == pred_obj_label:
+                                batch_preds[my_counter].poses[0:4, 0:4] = self.dataloader[i][j].poses.cuda()
+                                found = True
+                            if found:
+                                break
+                        i += 1
+                    # Rotate by 45 degrees along x axis
+                    # transform = torch.tensor([[sqrt(2)/2, -sqrt(2)/2, 0, 0], [sqrt(2)/2, sqrt(2)/2, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).cuda()
+                    # batch_preds[my_counter].poses[0:4, 0:4] = torch.mm(batch_preds[my_counter].poses, transform).cuda()
+                    my_counter += 1
                 preds[f'iteration={n}'].append(batch_preds)
 
         logger.debug(f'Pose prediction on {len(obj_data)} detections (n_iterations={n_iterations}): {timer.stop()}')
