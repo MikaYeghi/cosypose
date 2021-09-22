@@ -28,9 +28,6 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         self.coarse_model = coarse_model
         self.refiner_model = refiner_model
         self.bsz_objects = bsz_objects
-        # self.scene_ds = []
-        # for x in tqdm(scene_ds):
-        #     self.scene_ds.append(x[2])
         self.rank = get_rank()
         self.world_size = get_world_size()
         sampler = DistributedSceneSampler(scene_ds,
