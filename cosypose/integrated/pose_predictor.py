@@ -81,8 +81,6 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                                                         K_crop=iter_outputs['K_crop'],
                                                         boxes_rend=iter_outputs['boxes_rend'],
                                                         boxes_crop=iter_outputs['boxes_crop'])
-                # for x in range(batch_preds.poses.shape[0]): # randomly change prediction poses
-                #     batch_preds.poses[x][0:3, 0:3] = torch.rand(3, 3).cuda()
 
                 # Now rewrite predictions to ground truth
                 my_counter = 0
