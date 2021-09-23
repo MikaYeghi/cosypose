@@ -12,6 +12,7 @@ from .utils import (match_poses, get_top_n_ids,
                     add_valid_gt, get_candidate_matches, add_inst_num,
                     compute_auc_posecnn)
 from .base import Meter
+import pdb
 
 
 class PoseErrorMeter(Meter):
@@ -45,6 +46,7 @@ class PoseErrorMeter(Meter):
         self.report_AP = report_AP
         self.report_error_stats = report_error_stats
         self.report_error_AUC = report_error_AUC
+        self.errors_per_object = dict()
         self.reset()
 
         if self.exact_meshes:
@@ -96,9 +98,13 @@ class PoseErrorMeter(Meter):
         ids = torch.arange(len(labels))
         ds = TensorDataset(TXO_pred, TXO_gt, ids)
         dl = DataLoader(ds, batch_size=self.errors_bsz)
+        objects_to_ignore = []
         for (TXO_pred_, TXO_gt_, ids_) in dl:
             labels_ = labels[ids_.numpy()]
-            errors.append(self.compute_errors(TXO_pred_, TXO_gt_, labels_))
+            try:
+                errors.append(self.compute_errors(TXO_pred_, TXO_gt_, labels_))
+            except Exception:
+                objects_to_ignore.append(labels[ids_])
 
         if len(errors) == 0:
             errors.append(dict(
@@ -111,9 +117,40 @@ class PoseErrorMeter(Meter):
         errorsd = dict()
         for k in errors[0].keys():
             errorsd[k] = torch.cat([errors_n[k] for errors_n in errors], dim=0)
-        return errorsd
-
-    def add(self, pred_data, gt_data):
+        return errorsd, objects_to_ignore
+    
+    def delete_objects_to_ignore(self, pred_data, gt_data, objects_to_ignore):
+        """
+        Need to delete objects that are too big for evaluation (e.g. not enough GPU memory).
+        """
+        # Find indices of objects to ignore
+        gt_indices_to_ignore = gt_data.infos.index[gt_data.infos.label.isin(objects_to_ignore)].tolist()
+        pred_indices_to_ignore = pred_data.infos.index[pred_data.infos.label.isin(objects_to_ignore)].tolist()
+        gt_idx = gt_indices_to_ignore.copy()
+        pred_idx = pred_indices_to_ignore.copy()
+        gt_idx.sort()
+        pred_idx.sort()
+        # Delete relevant pose and distortion tensors
+        for i in range(len(gt_idx)):
+            idx = gt_idx[i]
+            gt_data.poses = torch.cat((gt_data.poses[0:idx], gt_data.poses[idx+1:]))
+            gt_idx = [k - 1 for k in gt_idx] # Subtract 1 since an element has been removed from the array
+        for i in range(len(pred_idx)):
+            idx = pred_idx[i]
+            pred_data.poses = torch.cat((pred_data.poses[0:idx], pred_data.poses[idx+1:]))
+            pred_data.distortions = torch.cat((pred_data.distortions[0:idx], pred_data.distortions[idx+1:]))
+            pred_idx = [k - 1 for k in pred_idx] # Subtract 1 since an element has been removed from the array
+        # Drop descriptions in infos
+        gt_data.infos = gt_data.infos.drop(gt_indices_to_ignore)
+        pred_data.infos = pred_data.infos.drop(pred_indices_to_ignore)
+        gt_data.infos = gt_data.infos.reset_index(drop=True)
+        pred_data.infos = pred_data.infos.reset_index(drop=True)
+        return pred_data, gt_data
+    
+    def find_objects_to_ignore(self, pred_data, gt_data):
+        """
+        Detects which objects are too large, and adds them to the list of objects to be ignored.
+        """
         group_keys = ['scene_id', 'view_id', 'label']
 
         pred_data = pred_data.float()
@@ -168,10 +205,94 @@ class PoseErrorMeter(Meter):
         cand_TXO_pred = pred_data_filtered.poses[pred_ids]
 
         # Compute errors for tentative matches
-        errors = self.compute_errors_batch(cand_TXO_pred, cand_TXO_gt,
+        _, labels_to_ignore = self.compute_errors_batch(cand_TXO_pred, cand_TXO_gt,
                                            cand_infos['label'].values)
+        
+        return labels_to_ignore
+    
+    def include_errors(self, errors, objects, distortions):
+        error_used = 'norm_avg'
+        errors_array = errors[error_used].tolist()
+        distortions = distortions.tolist()
+        counter = 0
+        for object_ in objects:
+            if object_ in self.errors_per_object.keys():
+                self.errors_per_object[object_].append((distortions[counter], errors_array[counter]))
+            else:
+                self.errors_per_object[object_] = [(distortions[counter], errors_array[counter])]
+            counter += 1
+
+    def add(self, pred_data, gt_data):
+        # Keep objects which are possible to evaluate
+        objects_to_ignore = self.find_objects_to_ignore(pred_data, gt_data)
+        pred_data, gt_data = self.delete_objects_to_ignore(pred_data, gt_data, objects_to_ignore)
+
+        group_keys = ['scene_id', 'view_id', 'label']
+
+        pred_data = pred_data.float()
+        gt_data = gt_data.float()
+
+        # Only keep predictions relevant to gt scene and images.
+        gt_infos = gt_data.infos.loc[:, ['scene_id', 'view_id']].drop_duplicates().reset_index(drop=True)
+        targets = self.targets
+        if targets is not None:
+            targets = gt_infos.merge(targets)
+        pred_data.infos['batch_pred_id'] = np.arange(len(pred_data))
+        keep_ids = gt_infos.merge(pred_data.infos)['batch_pred_id']
+        pred_data = pred_data[keep_ids]
+
+        # Add inst id to the dataframes
+        pred_data.infos = add_inst_num(pred_data.infos, key='pred_inst_id', group_keys=group_keys)
+        gt_data.infos = add_inst_num(gt_data.infos, key='gt_inst_id', group_keys=group_keys)
+
+        # Filter predictions according to BOP evaluation.
+        if not self.consider_all_predictions:
+            ids_top_n_pred = get_top_n_ids(pred_data.infos,
+                                           group_keys=group_keys, top_key='score',
+                                           targets=targets, n_top=self.n_top)
+            pred_data_filtered = pred_data.clone()[ids_top_n_pred]
+        else:
+            pred_data_filtered = pred_data.clone()
+
+        # Compute valid targets according to BOP evaluation.
+        gt_data.infos = add_valid_gt(gt_data.infos,
+                                     group_keys=group_keys,
+                                     targets=targets,
+                                     visib_gt_min=self.visib_gt_min)
+
+        # Compute tentative candidates
+        cand_infos = get_candidate_matches(pred_data_filtered.infos, gt_data.infos,
+                                           group_keys=group_keys,
+                                           only_valids=True)
+
+        # Filter out tentative matches that are too far.
+        self.spheres_overlap_check = False
+        if self.spheres_overlap_check:
+            diameters = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
+            dists = pred_data_filtered[cand_infos['pred_id'].values.tolist()].poses[:, :3, -1] - \
+                gt_data[cand_infos['gt_id'].values.tolist()].poses[:, :3, -1]
+            spheres_overlap = torch.norm(dists, dim=-1) < torch.as_tensor(diameters).to(dists.dtype).to(dists.device)
+            keep_ids = np.where(spheres_overlap.cpu().numpy())[0]
+            cand_infos = cand_infos.iloc[keep_ids].reset_index(drop=True)
+            cand_infos['cand_id'] = np.arange(len(cand_infos))
+
+        pred_ids = cand_infos['pred_id'].values.tolist()
+        gt_ids = cand_infos['gt_id'].values.tolist()
+        cand_TXO_gt = gt_data.poses[gt_ids]
+        cand_TXO_pred = pred_data_filtered.poses[pred_ids]
+
+        # Compute errors for tentative matches
+        errors, _ = self.compute_errors_batch(cand_TXO_pred, cand_TXO_gt,
+                                           cand_infos['label'].values)
+        current_objects = cand_infos['label'].values.tolist()
+        try:
+            self.include_errors(errors, current_objects, pred_data.distortions)
+        except Exception:
+            pass
 
         # Matches can only be objects within thresholds (following BOP).
+        self.match_threshold = self.match_threshold * self.match_threshold
+        self.match_threshold = self.match_threshold * self.match_threshold
         cand_infos['error'] = errors['norm_avg'].cpu().numpy()
         cand_infos['obj_diameter'] = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
         keep = cand_infos['error'] <= self.match_threshold * cand_infos['obj_diameter']
@@ -183,7 +304,11 @@ class PoseErrorMeter(Meter):
         # Save all informations in xarray datasets
         gt_keys = group_keys + ['gt_inst_id', 'valid'] + (['visib_fract'] if 'visib_fract' in gt_infos else [])
         gt = gt_data.infos.loc[:, gt_keys]
+        # gt = gt[gt.label.isin(matches.label.tolist())]
+        # gt = gt.reset_index(drop=True)
         preds = pred_data.infos.loc[:, group_keys + ['pred_inst_id', 'score']]
+        # preds = preds[preds.label.isin(matches.label.tolist())]
+        # preds = preds.reset_index(drop=True)
         matches = matches.loc[:, group_keys + ['pred_inst_id', 'gt_inst_id', 'cand_id']]
 
         gt = xr.Dataset(gt).rename({'dim_0': 'gt_id'})

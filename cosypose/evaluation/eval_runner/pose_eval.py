@@ -64,7 +64,10 @@ class PoseEvaluation:
         obj_predictions = obj_predictions.to(device)
         for obj_data_gt in tqdm(self.dataloader):
             for k, meter in self.meters.items():
-                meter.add(obj_predictions, obj_data_gt.to(device))
+                try:
+                    meter.add(obj_predictions, obj_data_gt.to(device))
+                except Exception:
+                    print("Empty view, skipping.")
         return self.summary()
 
     def summary(self):

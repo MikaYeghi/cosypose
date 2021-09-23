@@ -45,6 +45,9 @@ logger = get_logger(__name__)
 torch.multiprocessing.set_sharing_strategy('file_system')
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+import pdb
+import os
+import json
 
 
 @MEMORY.cache
@@ -292,7 +295,7 @@ def main():
         coarse_run_id = 'tless-coarse--10219'
         refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
-        n_refiner_iterations = 0
+        n_refiner_iterations = 4
     elif 'ycbv' in args.config:
         object_set = 'ycbv'
         refiner_run_id = 'ycbv-refiner-finetune--251020'
@@ -431,16 +434,18 @@ def main():
             logger.info(f"Evaluation : {preds_k} (N={len(preds)})")
             if len(preds) == 0:
                 preds = eval_runner.make_empty_predictions()
-            try:
-                eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds)
-                print("Successfully evaluated!")
-            except Exception:
-                print("Not enough memory, skipping this one...")
+            eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds)
             preds.cpu()
         else:
             logger.info(f"Skipped: {preds_k} (N={len(preds)})")
-
+    
     all_predictions = gather_predictions(all_predictions)
+
+    # Save errors of each object
+    my_errors = list(meters.values())[0].errors_per_object
+    file_path = f"/home/yemika/Documents/results_{os.environ['CUDA_VISIBLE_DEVICES']}.txt"
+    with open(file_path, 'w') as f:
+        f.write(json.dumps(my_errors))
 
     metrics_to_print = dict()
     if 'ycbv' in ds_name:

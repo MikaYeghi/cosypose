@@ -1,3 +1,4 @@
+import pyquaternion
 import torch
 
 from collections import defaultdict
@@ -15,7 +16,8 @@ from cosypose.evaluation.data_utils import parse_obs_data
 import pdb
 from tqdm import tqdm
 import numpy as np
-from math import sqrt
+from math import sqrt, pi
+from random import random
 
 
 class CoarseRefinePosePredictor(torch.nn.Module):
@@ -23,21 +25,24 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                  coarse_model=None,
                  refiner_model=None,
                  bsz_objects=64,
-                 scene_ds=None):
+                 scene_ds=None,
+                 use_gt=True):
         super().__init__()
         self.coarse_model = coarse_model
         self.refiner_model = refiner_model
         self.bsz_objects = bsz_objects
-        self.rank = get_rank()
-        self.world_size = get_world_size()
-        sampler = DistributedSceneSampler(scene_ds,
-                                              num_replicas=self.world_size,
-                                              rank=self.rank,
-                                              shuffle=True)
-        dataloader = DataLoader(scene_ds, batch_size=64,
-                                num_workers=4,
-                                sampler=sampler, collate_fn=self.collate_fn)
-        self.dataloader = list(tqdm(dataloader))
+        self.use_gt = use_gt
+        if self.use_gt:
+            self.rank = get_rank()
+            self.world_size = get_world_size()
+            sampler = DistributedSceneSampler(scene_ds,
+                                                num_replicas=self.world_size,
+                                                rank=self.rank,
+                                                shuffle=True)
+            dataloader = DataLoader(scene_ds, batch_size=64,
+                                    num_workers=4,
+                                    sampler=sampler, collate_fn=self.collate_fn)
+            self.dataloader = list(tqdm(dataloader))
         self.eval()
     
     def collate_fn(self, batch):
@@ -50,7 +55,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         return obj_data
 
     @torch.no_grad()
-    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1):
+    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1, distort=False, coarse_preds=None):
         timer = Timer()
         timer.start()
 
@@ -82,29 +87,36 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                                                         boxes_rend=iter_outputs['boxes_rend'],
                                                         boxes_crop=iter_outputs['boxes_crop'])
 
-                # Now rewrite predictions to ground truth
-                my_counter = 0
-                found = False
-                while my_counter < len(batch_preds):
-                    i = 0
-                    found = False
-                    while i < len(self.dataloader) and not found:
-                        pred_scene_id = batch_preds[my_counter].infos[0]
-                        pred_view_id = batch_preds[my_counter].infos[1]
-                        for j in np.where((self.dataloader[i].infos.scene_id == pred_scene_id) & (self.dataloader[i].infos.view_id == pred_view_id))[0]:
-                            gt_view_id = self.dataloader[i][j].infos[4]
-                            gt_obj_label = self.dataloader[i][j].infos[1]
-                            pred_obj_label = batch_preds[my_counter].infos[3]
-                            if gt_view_id == pred_view_id and gt_obj_label == pred_obj_label:
-                                batch_preds[my_counter].poses[0:4, 0:4] = self.dataloader[i][j].poses.cuda()
-                                found = True
-                            if found:
-                                break
-                        i += 1
-                    # Rotate by 45 degrees along x axis
-                    # transform = torch.tensor([[sqrt(2)/2, -sqrt(2)/2, 0, 0], [sqrt(2)/2, sqrt(2)/2, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).cuda()
-                    # batch_preds[my_counter].poses[0:4, 0:4] = torch.mm(batch_preds[my_counter].poses, transform).cuda()
-                    my_counter += 1
+                if self.use_gt:
+                    if distort:
+                        batch_preds.register_tensor(name='distortions', tensor=torch.zeros(len(batch_preds), 4).cuda()) # Add tensor to store [x, y, z, theta] values of distortions
+                        # Now rewrite predictions to ground truth
+                        my_counter = 0
+                        found = False
+                        while my_counter < len(batch_preds):
+                            i = 0
+                            found = False
+                            while i < len(self.dataloader) and not found:
+                                pred_scene_id = batch_preds[my_counter].infos[0]
+                                pred_view_id = batch_preds[my_counter].infos[1]
+                                for j in np.where((self.dataloader[i].infos.scene_id == pred_scene_id) & (self.dataloader[i].infos.view_id == pred_view_id))[0]:
+                                    gt_view_id = self.dataloader[i][j].infos[4]
+                                    gt_obj_label = self.dataloader[i][j].infos[1]
+                                    pred_obj_label = batch_preds[my_counter].infos[3]
+                                    if gt_view_id == pred_view_id and gt_obj_label == pred_obj_label:
+                                        batch_preds[my_counter].poses[0:4, 0:4] = self.dataloader[i][j].poses.cuda()
+                                        found = True
+                                    if found:
+                                        break
+                                i += 1
+                            # Rotate by some angle around some axis
+                            x_quat, y_quat, z_quat, theta = random() - 0.5, random() - 0.5, random() - 0.5, random() * 2 * pi
+                            transform = torch.tensor(pyquaternion.Quaternion(axis=[x_quat, y_quat, z_quat], angle=theta).transformation_matrix, dtype=torch.float32).cuda()
+                            batch_preds[my_counter].poses[0:4, 0:4] = torch.mm(batch_preds[my_counter].poses, transform).cuda()
+                            batch_preds[my_counter].distortions[0:4] = torch.tensor([x_quat, y_quat, z_quat, theta]).cuda()
+                            my_counter += 1
+                    else:
+                        batch_preds.register_tensor(name="distortions", tensor=coarse_preds.distortions)
                 preds[f'iteration={n}'].append(batch_preds)
 
         logger.debug(f'Pose prediction on {len(obj_data)} detections (n_iterations={n_iterations}): {timer.stop()}')
@@ -113,7 +125,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             preds[k] = tc.concatenate(v)
         return preds
 
-    def make_TCO_init(self, detections, K): # INITIAL POSE TRANSLATIONS ARE SET HERE
+    def make_TCO_init(self, detections, K):
         K = K[detections.infos['batch_im_id'].values]
         boxes = detections.bboxes
         if self.coarse_model.cfg.init_method == 'z-up+auto-depth':
@@ -138,7 +150,8 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             data_TCO_init = self.make_TCO_init(detections, K)
             coarse_preds = self.batched_model_predictions(self.coarse_model,
                                                           images, K, data_TCO_init,
-                                                          n_iterations=n_coarse_iterations)
+                                                          n_iterations=n_coarse_iterations,
+                                                          distort=True)
             for n in range(1, n_coarse_iterations + 1):
                 preds[f'coarse/iteration={n}'] = coarse_preds[f'iteration={n}']
             data_TCO = coarse_preds[f'iteration={n_coarse_iterations}']
@@ -151,7 +164,9 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             assert self.refiner_model is not None
             refiner_preds = self.batched_model_predictions(self.refiner_model,
                                                            images, K, data_TCO,
-                                                           n_iterations=n_refiner_iterations)
+                                                           n_iterations=n_refiner_iterations,
+                                                           distort=False,
+                                                           coarse_preds=coarse_preds['iteration=1'])
             for n in range(1, n_refiner_iterations + 1):
                 preds[f'refiner/iteration={n}'] = refiner_preds[f'iteration={n}']
             data_TCO = refiner_preds[f'iteration={n_refiner_iterations}']
