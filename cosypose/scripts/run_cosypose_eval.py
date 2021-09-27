@@ -443,7 +443,7 @@ def main():
 
     # Save errors of each object
     my_errors = list(meters.values())[0].errors_per_object
-    file_path = f"/home/yemika/Documents/results_{os.environ['CUDA_VISIBLE_DEVICES']}.txt"
+    file_path = f"{save_dir}_GPU_{os.environ['CUDA_VISIBLE_DEVICES']}.txt"
     with open(file_path, 'w') as f:
         f.write(json.dumps(my_errors))
 
