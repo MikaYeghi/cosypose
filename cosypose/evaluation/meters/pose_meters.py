@@ -291,8 +291,7 @@ class PoseErrorMeter(Meter):
             pass
 
         # Matches can only be objects within thresholds (following BOP).
-        self.match_threshold = self.match_threshold * self.match_threshold
-        self.match_threshold = self.match_threshold * self.match_threshold
+        self.match_threshold = self.match_threshold * 10000
         cand_infos['error'] = errors['norm_avg'].cpu().numpy()
         cand_infos['obj_diameter'] = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
         keep = cand_infos['error'] <= self.match_threshold * cand_infos['obj_diameter']
