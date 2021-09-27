@@ -443,9 +443,6 @@ def main():
 
     # Save errors of each object
     my_errors = list(meters.values())[0].errors_per_object
-    file_path = f"{save_dir}_GPU_{os.environ['CUDA_VISIBLE_DEVICES']}.txt"
-    with open(file_path, 'w') as f:
-        f.write(json.dumps(my_errors))
 
     metrics_to_print = dict()
     if 'ycbv' in ds_name:
@@ -494,6 +491,10 @@ def main():
         torch.save(results, save_dir / 'results.pth.tar')
         (save_dir / 'summary.txt').write_text(summary_txt)
         logger.info(f"Saved: {save_dir}")
+    
+    file_path = f"{save_dir}/results_GPU_{os.environ['CUDA_VISIBLE_DEVICES']}.txt"
+    with open(file_path, 'w') as f:
+        f.write(json.dumps(my_errors))
 
 
 if __name__ == '__main__':
