@@ -139,6 +139,7 @@ class PoseErrorMeter(Meter):
             idx = pred_idx[i]
             pred_data.poses = torch.cat((pred_data.poses[0:idx], pred_data.poses[idx+1:]))
             pred_data.distortions = torch.cat((pred_data.distortions[0:idx], pred_data.distortions[idx+1:]))
+            pred_data.coarse_predictions = torch.cat((pred_data.coarse_predictions[0:idx], pred_data.coarse_predictions[idx+1:]))
             pred_idx = [k - 1 for k in pred_idx] # Subtract 1 since an element has been removed from the array
         # Drop descriptions in infos
         gt_data.infos = gt_data.infos.drop(gt_indices_to_ignore)
@@ -210,16 +211,18 @@ class PoseErrorMeter(Meter):
         
         return labels_to_ignore
     
-    def include_errors(self, errors, objects, distortions):
+    def include_errors(self, errors, objects, distortions, coarse_predictions, coarse_errors):
         error_used = 'norm_avg'
         errors_array = errors[error_used].tolist()
+        coarse_errors_array = coarse_errors[error_used].tolist()
         distortions = distortions.tolist()
+        coarse_predictions = coarse_predictions.tolist()
         counter = 0
         for object_ in objects:
             if object_ in self.errors_per_object.keys():
-                self.errors_per_object[object_].append((distortions[counter], errors_array[counter]))
+                self.errors_per_object[object_].append((distortions[counter], errors_array[counter], coarse_predictions[counter], coarse_errors_array[counter]))
             else:
-                self.errors_per_object[object_] = [(distortions[counter], errors_array[counter])]
+                self.errors_per_object[object_] = [(distortions[counter], errors_array[counter], coarse_predictions[counter], coarse_errors_array[counter])]
             counter += 1
 
     def add(self, pred_data, gt_data):
@@ -284,14 +287,16 @@ class PoseErrorMeter(Meter):
         # Compute errors for tentative matches
         errors, _ = self.compute_errors_batch(cand_TXO_pred, cand_TXO_gt,
                                            cand_infos['label'].values)
+        coarse_errors, _ = self.compute_errors_batch(pred_data.coarse_predictions, cand_TXO_gt,
+                                           cand_infos['label'].values)
         current_objects = cand_infos['label'].values.tolist()
         try:
-            self.include_errors(errors, current_objects, pred_data.distortions)
+            self.include_errors(errors, current_objects, pred_data.distortions, pred_data.coarse_predictions, coarse_errors)
         except Exception:
             pass
 
         # Matches can only be objects within thresholds (following BOP).
-        self.match_threshold = self.match_threshold * 10000
+        self.match_threshold = self.match_threshold * 10000 # Extend threshold
         cand_infos['error'] = errors['norm_avg'].cpu().numpy()
         cand_infos['obj_diameter'] = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
         keep = cand_infos['error'] <= self.match_threshold * cand_infos['obj_diameter']

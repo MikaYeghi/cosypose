@@ -277,8 +277,8 @@ def main():
 
     coarse_run_id = None
     refiner_run_id = None
-    n_workers = 8
-    n_plotters = 8
+    n_workers = 0
+    n_plotters = 0
     n_views = 1
 
     n_frames = None

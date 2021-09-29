@@ -88,7 +88,7 @@ class MultiviewPredictionRunner:
             detections = detections[np.where(mask)[0]]
             detections.infos['det_id'] = np.arange(len(detections))
             det_index = detections.infos.set_index(['scene_id', 'view_id']).sort_index()
-
+        
         predictions = defaultdict(list)
         for data in tqdm(self.dataloader):
             images = data['images'].cuda().float().permute(0, 3, 1, 2) / 255
