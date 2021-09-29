@@ -117,6 +117,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                             my_counter += 1
                     else:
                         batch_preds.register_tensor(name="distortions", tensor=coarse_preds.distortions)
+                        batch_preds.register_tensor(name="coarse_predictions", tensor=coarse_preds.poses)
                 preds[f'iteration={n}'].append(batch_preds)
 
         logger.debug(f'Pose prediction on {len(obj_data)} detections (n_iterations={n_iterations}): {timer.stop()}')
