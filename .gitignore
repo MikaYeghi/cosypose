@@ -21,4 +21,4 @@ dist/
 build/
 *.temp
 job-runner-*
-visualize_singleview_predictions.ipynb
+visualize_singleview_predictions*.ipynb
