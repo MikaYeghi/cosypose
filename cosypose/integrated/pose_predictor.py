@@ -13,6 +13,8 @@ logger = get_logger(__name__)
 from cosypose.datasets.samplers import DistributedSceneSampler
 from cosypose.utils.distributed import get_world_size, get_rank
 from cosypose.evaluation.data_utils import parse_obs_data
+from cosypose.evaluation.eval_runner.gt_coarse_perturbation_eval import GroundTruthPerturbationEvaluationObject
+
 import pdb
 from tqdm import tqdm
 import numpy as np
@@ -55,7 +57,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         return obj_data
 
     @torch.no_grad()
-    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1, distort=False, coarse_preds=None):
+    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1, distort=False, coarse_preds=None, predicted_gt_coarse_objects=list()):
         timer = Timer()
         timer.start()
 
@@ -92,17 +94,16 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                         batch_preds.register_tensor(name='distortions', tensor=torch.zeros(len(batch_preds), 4).cuda()) # Add tensor to store [x, y, z, theta] values of distortions
                         # Now rewrite predictions to ground truth
                         my_counter = 0
-                        found = False
                         while my_counter < len(batch_preds):
                             i = 0
                             found = False
                             while i < len(self.dataloader) and not found:
                                 pred_scene_id = batch_preds[my_counter].infos[0]
                                 pred_view_id = batch_preds[my_counter].infos[1]
-                                for j in np.where((self.dataloader[i].infos.scene_id == pred_scene_id) & (self.dataloader[i].infos.view_id == pred_view_id))[0]:
+                                pred_obj_label = batch_preds[my_counter].infos[3]
+                                for j in np.where((self.dataloader[i].infos.scene_id == pred_scene_id) & (self.dataloader[i].infos.view_id == pred_view_id) & (self.dataloader[i].infos.label == pred_obj_label))[0]:
                                     gt_view_id = self.dataloader[i][j].infos[4]
                                     gt_obj_label = self.dataloader[i][j].infos[1]
-                                    pred_obj_label = batch_preds[my_counter].infos[3]
                                     if gt_view_id == pred_view_id and gt_obj_label == pred_obj_label:
                                         batch_preds[my_counter].poses[0:4, 0:4] = self.dataloader[i][j].poses.cuda()
                                         found = True
@@ -114,6 +115,17 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                             transform = torch.tensor(pyquaternion.Quaternion(axis=[x_quat, y_quat, z_quat], angle=theta).transformation_matrix, dtype=torch.float32).cuda()
                             batch_preds[my_counter].poses[0:4, 0:4] = torch.mm(batch_preds[my_counter].poses, transform).cuda()
                             batch_preds[my_counter].distortions[0:4] = torch.tensor([x_quat, y_quat, z_quat, theta]).cuda()
+
+                            # Append modified object to the list of GT-coarse perturbed objects
+                            perturbed_object = GroundTruthPerturbationEvaluationObject(
+                                distortion=[x_quat, y_quat, z_quat, theta],
+                                scene_id=batch_preds[my_counter].infos[0],
+                                view_id=batch_preds[my_counter].infos[1],
+                                object_id=batch_preds[my_counter].infos[3],
+                                detection_id=batch_preds[my_counter].infos[4]
+                            )
+                            predicted_gt_coarse_objects.append(perturbed_object)
+
                             my_counter += 1
                     else:
                         batch_preds.register_tensor(name="distortions", tensor=coarse_preds.distortions)
@@ -141,7 +153,8 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                         detections=None,
                         data_TCO_init=None,
                         n_coarse_iterations=1,
-                        n_refiner_iterations=1):
+                        n_refiner_iterations=1,
+                        predicted_gt_coarse_objects=list()):
 
         preds = dict()
         if data_TCO_init is None:
@@ -152,7 +165,8 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             coarse_preds = self.batched_model_predictions(self.coarse_model,
                                                           images, K, data_TCO_init,
                                                           n_iterations=n_coarse_iterations,
-                                                          distort=True)
+                                                          distort=True,
+                                                          predicted_gt_coarse_objects=predicted_gt_coarse_objects)
             for n in range(1, n_coarse_iterations + 1):
                 preds[f'coarse/iteration={n}'] = coarse_preds[f'iteration={n}']
             data_TCO = coarse_preds[f'iteration={n_coarse_iterations}']

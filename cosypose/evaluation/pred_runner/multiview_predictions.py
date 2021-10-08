@@ -10,6 +10,7 @@ import cosypose.utils.tensor_collection as tc
 from cosypose.utils.distributed import get_world_size, get_rank, get_tmp_dir
 
 from torch.utils.data import DataLoader
+import pdb
 
 logger = get_logger(__name__)
 
@@ -80,8 +81,9 @@ class MultiviewPredictionRunner:
                         detections=None,
                         n_coarse_iterations=1, n_refiner_iterations=1,
                         sv_score_th=0.0, skip_mv=True,
-                        use_detections_TCO=False):
-
+                        use_detections_TCO=False,
+                        predicted_gt_coarse_objects=list()):
+        
         assert detections is not None
         if detections is not None:
             mask = (detections.infos['score'] >= sv_score_th)
@@ -133,6 +135,7 @@ class MultiviewPredictionRunner:
                     n_coarse_iterations=n_coarse_iterations,
                     data_TCO_init=data_TCO_init,
                     n_refiner_iterations=n_refiner_iterations,
+                    predicted_gt_coarse_objects=predicted_gt_coarse_objects
                 )
                 candidates.register_tensor('initial_bboxes', detections_.bboxes)
 

@@ -1,3 +1,4 @@
+from numpy.core.records import record
 from sklearn.metrics import average_precision_score
 import numpy as np
 import xarray as xr
@@ -93,18 +94,37 @@ class PoseErrorMeter(Meter):
         errors['TCO_norm'] = torch.norm(TXO_pred[:, :3, -1] - TXO_gt[:, :3, -1], dim=-1, p=2)
         return errors
 
-    def compute_errors_batch(self, TXO_pred, TXO_gt, labels):
+    def compute_errors_batch(self, TXO_pred, TXO_gt, labels, scene_ids=None, view_ids=None, detection_ids=None, predicted_gt_coarse_objects=list(), is_coarse=False, record_errors=False):
         errors = []
         ids = torch.arange(len(labels))
         ds = TensorDataset(TXO_pred, TXO_gt, ids)
         dl = DataLoader(ds, batch_size=self.errors_bsz)
         objects_to_ignore = []
+        k = 0
         for (TXO_pred_, TXO_gt_, ids_) in dl:
             labels_ = labels[ids_.numpy()]
             try:
-                errors.append(self.compute_errors(TXO_pred_, TXO_gt_, labels_))
+                new_error = self.compute_errors(TXO_pred_, TXO_gt_, labels_)
+                errors.append(new_error)
+                if record_errors:
+                    error_used_gt_coarse = 'norm_avg'
+                    scene_id = scene_ids[k]
+                    view_id = view_ids[k]
+                    detection_id = detection_ids[k]
+                    error_value = new_error[error_used_gt_coarse].cpu().numpy()[0]
+                    if None not in (scene_ids, view_ids, detection_ids): # if data has been passed, try to locate the object in GT-coarse objects and update its errors
+                        i = 0
+                        while i < len(predicted_gt_coarse_objects):
+                            if predicted_gt_coarse_objects[i].scene_id == scene_id and predicted_gt_coarse_objects[i].view_id == view_id and predicted_gt_coarse_objects[i].detection_id == detection_id:
+                                break
+                            i += 1
+                        if is_coarse:
+                            predicted_gt_coarse_objects[i].update_coarse_error(error_value)
+                        else:
+                            predicted_gt_coarse_objects[i].update_refiner_error(error_value)
             except Exception:
                 objects_to_ignore.append(labels[ids_])
+            k += 1
 
         if len(errors) == 0:
             errors.append(dict(
@@ -190,16 +210,6 @@ class PoseErrorMeter(Meter):
                                            group_keys=group_keys,
                                            only_valids=True)
 
-        # Filter out tentative matches that are too far.
-        if self.spheres_overlap_check:
-            diameters = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
-            dists = pred_data_filtered[cand_infos['pred_id'].values.tolist()].poses[:, :3, -1] - \
-                gt_data[cand_infos['gt_id'].values.tolist()].poses[:, :3, -1]
-            spheres_overlap = torch.norm(dists, dim=-1) < torch.as_tensor(diameters).to(dists.dtype).to(dists.device)
-            keep_ids = np.where(spheres_overlap.cpu().numpy())[0]
-            cand_infos = cand_infos.iloc[keep_ids].reset_index(drop=True)
-            cand_infos['cand_id'] = np.arange(len(cand_infos))
-
         pred_ids = cand_infos['pred_id'].values.tolist()
         gt_ids = cand_infos['gt_id'].values.tolist()
         cand_TXO_gt = gt_data.poses[gt_ids]
@@ -225,10 +235,14 @@ class PoseErrorMeter(Meter):
                 self.errors_per_object[object_] = [(distortions[counter], errors_array[counter], coarse_predictions[counter], coarse_errors_array[counter])]
             counter += 1
 
-    def add(self, pred_data, gt_data):
+    def add(self, pred_data, gt_data, predicted_gt_coarse_objects=list(), record_errors=True):
         # Keep objects which are possible to evaluate
         objects_to_ignore = self.find_objects_to_ignore(pred_data, gt_data)
         pred_data, gt_data = self.delete_objects_to_ignore(pred_data, gt_data, objects_to_ignore)
+        initial_number_of_objects = len(pred_data) # Number of objects that enter this function
+        if initial_number_of_objects == 0:
+            print("Empty view. Skipping.")
+            return
 
         group_keys = ['scene_id', 'view_id', 'label']
 
@@ -269,7 +283,10 @@ class PoseErrorMeter(Meter):
                                            only_valids=True)
 
         # Filter out tentative matches that are too far.
-        self.spheres_overlap_check = False
+        """
+        These lines of code remove objects that have position vector too far from the ground truth.
+        """
+        self.spheres_overlap_check = False # [ADDED LINE]
         if self.spheres_overlap_check:
             diameters = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
             dists = pred_data_filtered[cand_infos['pred_id'].values.tolist()].poses[:, :3, -1] - \
@@ -286,21 +303,27 @@ class PoseErrorMeter(Meter):
 
         # Compute errors for tentative matches
         errors, _ = self.compute_errors_batch(cand_TXO_pred, cand_TXO_gt,
-                                           cand_infos['label'].values)
+                                           cand_infos['label'].values, 
+                                           scene_ids=list(cand_infos['scene_id'].values),
+                                           view_ids=list(cand_infos['view_id'].values),
+                                           detection_ids=list(cand_infos['det_id'].values),
+                                           predicted_gt_coarse_objects=predicted_gt_coarse_objects,
+                                           record_errors=record_errors)
         coarse_errors, _ = self.compute_errors_batch(pred_data.coarse_predictions, cand_TXO_gt,
-                                           cand_infos['label'].values)
-        current_objects = cand_infos['label'].values.tolist()
-        try:
-            self.include_errors(errors, current_objects, pred_data.distortions, pred_data.coarse_predictions, coarse_errors)
-        except Exception:
-            pass
+                                           cand_infos['label'].values, 
+                                           is_coarse=True, 
+                                           scene_ids=list(cand_infos['scene_id'].values),
+                                           view_ids=list(cand_infos['view_id'].values),
+                                           detection_ids=list(cand_infos['det_id'].values),
+                                           predicted_gt_coarse_objects=predicted_gt_coarse_objects,
+                                           record_errors=record_errors)
 
         # Matches can only be objects within thresholds (following BOP).
-        self.match_threshold = self.match_threshold * 10000 # Extend threshold
+        # self.match_threshold = self.match_threshold * 10000 # Extend threshold [ADDED LINE]
         cand_infos['error'] = errors['norm_avg'].cpu().numpy()
         cand_infos['obj_diameter'] = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
-        keep = cand_infos['error'] <= self.match_threshold * cand_infos['obj_diameter']
-        cand_infos = cand_infos[keep].reset_index(drop=True)
+        # keep = cand_infos['error'] <= self.match_threshold * cand_infos['obj_diameter']
+        # cand_infos = cand_infos[keep].reset_index(drop=True)
 
         # Match predictions to ground truth poses
         matches = match_poses(cand_infos, group_keys=group_keys)

@@ -14,6 +14,8 @@ from cosypose.lib3d.cosypose_ops import apply_imagespace_predictions
 from cosypose.utils.logging import get_logger
 logger = get_logger(__name__)
 
+import pdb
+
 
 class PosePredictor(nn.Module):
     def __init__(self, backbone, renderer,

@@ -9,6 +9,8 @@ from cosypose.models.pose import PosePredictor
 from cosypose.utils.logging import get_logger
 logger = get_logger(__name__)
 
+import pdb
+
 
 def check_update_config(config):
     if not hasattr(config, 'init_method'):

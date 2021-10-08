@@ -1,3 +1,4 @@
+from numpy.core.records import record
 from tqdm import tqdm
 import numpy as np
 import torch
@@ -12,6 +13,7 @@ from cosypose.utils.distributed import get_world_size, get_rank, get_tmp_dir
 import cosypose.utils.tensor_collection as tc
 from cosypose.evaluation.data_utils import parse_obs_data
 from cosypose.datasets.samplers import DistributedSceneSampler
+import pdb
 
 
 class PoseEvaluation:
@@ -58,16 +60,23 @@ class PoseEvaluation:
         obj_data = tc.concatenate(obj_data)
         return obj_data
 
-    def evaluate(self, obj_predictions, device='cuda'):
+    def evaluate(self, obj_predictions, device='cuda', predicted_gt_coarse_objects=list()):
         for meter in self.meters.values():
             meter.reset()
         obj_predictions = obj_predictions.to(device)
         for obj_data_gt in tqdm(self.dataloader):
+            first_record = True # to make sure that GT-coarse objects are recorded only once
             for k, meter in self.meters.items():
+                if first_record:
+                    record_errors = True
+                    first_record = False
+                else:
+                    record_errors = False
+
                 try:
-                    meter.add(obj_predictions, obj_data_gt.to(device))
-                except Exception:
-                    print("Empty view, skipping.")
+                    meter.add(obj_predictions, obj_data_gt.to(device), predicted_gt_coarse_objects=predicted_gt_coarse_objects, record_errors=record_errors)
+                except Exception as e:
+                    print(e)
         return self.summary()
 
     def summary(self):

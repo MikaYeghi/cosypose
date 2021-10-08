@@ -47,7 +47,8 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 import pdb
 import os
-import json
+import json, pickle
+from tqdm import tqdm
 
 
 @MEMORY.cache
@@ -343,6 +344,7 @@ def main():
 
     # Predictions
     predictor, mesh_db = load_models(coarse_run_id, refiner_run_id, n_workers=n_plotters, object_set=object_set, scene_ds=scene_ds)
+    predicted_gt_coarse_objects = list() # stores objects of class GroundTruthPerturbationEvaluationObject
 
     mv_predictor = MultiviewScenePredictor(mesh_db)
 
@@ -351,7 +353,7 @@ def main():
         n_refiner_iterations=n_refiner_iterations,
         skip_mv=skip_mv,
         pose_predictor=predictor,
-        mv_predictor=mv_predictor,
+        mv_predictor=mv_predictor
     )
 
     if skip_predictions:
@@ -361,6 +363,7 @@ def main():
         pred_kwargs = {
             'pix2pose_detections': dict(
                 detections=pix2pose_detections,
+                predicted_gt_coarse_objects=predicted_gt_coarse_objects,
                 **base_pred_kwargs
             ),
         }
@@ -434,12 +437,19 @@ def main():
             logger.info(f"Evaluation : {preds_k} (N={len(preds)})")
             if len(preds) == 0:
                 preds = eval_runner.make_empty_predictions()
-            eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds)
+            eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds, predicted_gt_coarse_objects=predicted_gt_coarse_objects)
             preds.cpu()
         else:
             logger.info(f"Skipped: {preds_k} (N={len(preds)})")
     
     all_predictions = gather_predictions(all_predictions)
+
+    # Clear incomplete records from predicted_gt_coarse_objects
+    print(f"Initial number of objects recorded: {len(predicted_gt_coarse_objects)}")
+    print("Clearing incomplete GT-coarse objects...")
+    filtered_predicted_gt_coarse_objects = [obj_ for obj_ in predicted_gt_coarse_objects if None not in (obj_.coarse_error, obj_.refiner_error)]
+    predicted_gt_coarse_objects = filtered_predicted_gt_coarse_objects.copy()
+    print(f"Final number of objects recorded: {len(predicted_gt_coarse_objects)}")
 
     # Save errors of each object
     my_errors = list(meters.values())[0].errors_per_object
@@ -493,8 +503,10 @@ def main():
         logger.info(f"Saved: {save_dir}")
     
     file_path = f"{save_dir}/results_GPU_{os.environ['CUDA_VISIBLE_DEVICES']}.txt"
-    with open(file_path, 'w') as f:
-        f.write(json.dumps(my_errors))
+    with open(file_path, 'wb') as f:
+        # f.write(json.dumps(my_errors))
+        for x in predicted_gt_coarse_objects:
+            pickle.dump(x, f, pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
