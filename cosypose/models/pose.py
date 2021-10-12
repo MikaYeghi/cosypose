@@ -105,6 +105,7 @@ class PosePredictor(nn.Module):
 
             x = torch.cat((images_crop, renders), dim=1)
 
+            # pdb.set_trace()
             model_outputs = self.net_forward(x)
 
             TCO_output = self.update_pose(TCO_input, K_crop, model_outputs['pose'])

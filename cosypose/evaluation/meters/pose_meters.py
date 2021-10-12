@@ -139,7 +139,7 @@ class PoseErrorMeter(Meter):
             errorsd[k] = torch.cat([errors_n[k] for errors_n in errors], dim=0)
         return errorsd, objects_to_ignore
     
-    def delete_objects_to_ignore(self, pred_data, gt_data, objects_to_ignore):
+    def delete_objects_to_ignore(self, pred_data, gt_data, objects_to_ignore, use_gt_data=False):
         """
         Need to delete objects that are too big for evaluation (e.g. not enough GPU memory).
         """
@@ -158,8 +158,9 @@ class PoseErrorMeter(Meter):
         for i in range(len(pred_idx)):
             idx = pred_idx[i]
             pred_data.poses = torch.cat((pred_data.poses[0:idx], pred_data.poses[idx+1:]))
-            pred_data.distortions = torch.cat((pred_data.distortions[0:idx], pred_data.distortions[idx+1:]))
-            pred_data.coarse_predictions = torch.cat((pred_data.coarse_predictions[0:idx], pred_data.coarse_predictions[idx+1:]))
+            if use_gt_data:
+                pred_data.distortions = torch.cat((pred_data.distortions[0:idx], pred_data.distortions[idx+1:]))
+                pred_data.coarse_predictions = torch.cat((pred_data.coarse_predictions[0:idx], pred_data.coarse_predictions[idx+1:]))
             pred_idx = [k - 1 for k in pred_idx] # Subtract 1 since an element has been removed from the array
         # Drop descriptions in infos
         gt_data.infos = gt_data.infos.drop(gt_indices_to_ignore)
@@ -235,10 +236,10 @@ class PoseErrorMeter(Meter):
                 self.errors_per_object[object_] = [(distortions[counter], errors_array[counter], coarse_predictions[counter], coarse_errors_array[counter])]
             counter += 1
 
-    def add(self, pred_data, gt_data, predicted_gt_coarse_objects=list(), record_errors=True):
+    def add(self, pred_data, gt_data, predicted_gt_coarse_objects=list(), record_errors=True, use_gt_data=False):
         # Keep objects which are possible to evaluate
         objects_to_ignore = self.find_objects_to_ignore(pred_data, gt_data)
-        pred_data, gt_data = self.delete_objects_to_ignore(pred_data, gt_data, objects_to_ignore)
+        pred_data, gt_data = self.delete_objects_to_ignore(pred_data, gt_data, objects_to_ignore, use_gt_data=use_gt_data)
         initial_number_of_objects = len(pred_data) # Number of objects that enter this function
         if initial_number_of_objects == 0:
             print("Empty view. Skipping.")

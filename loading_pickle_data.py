@@ -1,5 +1,9 @@
+from logging import raiseExceptions
+from multiprocessing import Value
 import pickle
 from matplotlib import pyplot as plt
+import pyquaternion
+import math
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 from pprint import pprint
@@ -97,6 +101,18 @@ class Dataloader:
                 relevant_objects.append(obj)
         return relevant_objects
 
+    def get_data(self):
+        return self.objects_list
+
+    def get_object_by_scene_view_label(self, scene_id, view_id, object_id):
+        obj = None
+        for obj_ in self.objects_list:
+            if obj_.scene_id == scene_id and obj_.view_id == view_id and obj_.object_id == object_id:
+                obj = obj_
+                break
+        assert obj is not None
+        return obj
+
     def get_objects_unique_count(self):
         objects_count = dict()
         for obj in tqdm(self.objects_list):
@@ -121,18 +137,40 @@ class Dataloader:
             if obj_view_id <= self.authors_results[obj_scene_id]:
                 authors_objects.append(obj)
         return authors_objects
+    
+    def plot_error_vs_angle(self, error_type):
+        assert error_type in ('refiner', 'coarse'), "Error type must be either 'refiner' or 'coarse'"
 
-dl = Dataloader(file_path="/home/yemika/Mikael/Oxford/Studying/4YP/code/cosypose/local_data/results/tless-siso-n_views=1--4312481950/results_GPU_1.txt")
+        xs, ys = list(), list()
+        for obj in self.objects_list:
+            # Extract distance angle
+            obj_distortion = obj.distortion
+            transform = pyquaternion.Quaternion(axis=obj_distortion[:3], angle=obj_distortion[3]).transformation_matrix
+            distance_angle = math.acos((transform.trace() - 2) / 2)
+            xs.append(distance_angle)
+
+            # Extract error
+            if error_type == 'refiner':
+                ys.append(obj.refiner_error)
+            elif error_type == 'coarse':
+                ys.append(obj.coarse_error)
+            else:
+                raise ValueError("Error type must be either 'coarse' or 'refiner'")
+            
+        plt.plot(xs, ys, 'bo')
+        plt.xlabel("Distance angle, radians")
+        plt.ylabel("Error value")
+        plt.title("Error vs angle")
+        plt.grid(True)
+        plt.show()
+
+# dl = Dataloader(file_path="/home/yemika/Mikael/Oxford/Studying/4YP/code/cosypose/local_data/results/tless-siso-n_views=1--4312481950/results_GPU_1.txt")
 # dl = Dataloader(file_path="/home/yemika/Mikael/Oxford/Studying/4YP/code/cosypose/local_data/results/tless-siso-n_views=1--7937853015/results_GPU_0.txt")
+dl = Dataloader(file_path="/home/yemika/Mikael/Oxford/Studying/4YP/code/cosypose/local_data/results/tless-siso-n_views=1--1301812197/results_GPU_0.txt")
 
 # Loading the data
 dl.load_data()
 dl.update_data(dl.get_authors_only())
 
-# Filtering
-filtered = dl.filter_objects(ref_min=0.25)
-for x in filtered:
-    print(x)
-
 # Plotting the data
-# dl.plot_data(separation_line=True, objects_selected=['obj_000029'])
+dl.plot_data(separation_line=True)

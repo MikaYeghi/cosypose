@@ -60,7 +60,7 @@ class PoseEvaluation:
         obj_data = tc.concatenate(obj_data)
         return obj_data
 
-    def evaluate(self, obj_predictions, device='cuda', predicted_gt_coarse_objects=list()):
+    def evaluate(self, obj_predictions, device='cuda', predicted_gt_coarse_objects=list(), use_gt_data=False):
         for meter in self.meters.values():
             meter.reset()
         obj_predictions = obj_predictions.to(device)
@@ -74,7 +74,7 @@ class PoseEvaluation:
                     record_errors = False
 
                 try:
-                    meter.add(obj_predictions, obj_data_gt.to(device), predicted_gt_coarse_objects=predicted_gt_coarse_objects, record_errors=record_errors)
+                    meter.add(obj_predictions, obj_data_gt.to(device), predicted_gt_coarse_objects=predicted_gt_coarse_objects, record_errors=record_errors, use_gt_data=use_gt_data)
                 except Exception as e:
                     print(e)
         return self.summary()

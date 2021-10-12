@@ -222,7 +222,7 @@ def get_pose_meters(scene_ds):
     return meters
 
 
-def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tless', scene_ds=None):
+def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tless', scene_ds=None, use_gt_data=False):
     if object_set == 'tless':
         object_ds_name, urdf_ds_name = 'tless.bop', 'tless.cad'
     else:
@@ -255,7 +255,8 @@ def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tle
     refiner_model = load_model(refiner_run_id)
     model = CoarseRefinePosePredictor(coarse_model=coarse_model,
                                       refiner_model=refiner_model,
-                                      scene_ds=scene_ds)
+                                      scene_ds=scene_ds,
+                                      use_gt=use_gt_data)
     return model, mesh_db
 
 
@@ -297,6 +298,7 @@ def main():
         refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
         n_refiner_iterations = 4
+        use_gt_data = False # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
     elif 'ycbv' in args.config:
         object_set = 'ycbv'
         refiner_run_id = 'ycbv-refiner-finetune--251020'
@@ -343,7 +345,7 @@ def main():
         scene_ds.frame_index = scene_ds.frame_index[mask].reset_index(drop=True)[:n_frames]
 
     # Predictions
-    predictor, mesh_db = load_models(coarse_run_id, refiner_run_id, n_workers=n_plotters, object_set=object_set, scene_ds=scene_ds)
+    predictor, mesh_db = load_models(coarse_run_id, refiner_run_id, n_workers=n_plotters, object_set=object_set, scene_ds=scene_ds, use_gt_data=use_gt_data)
     predicted_gt_coarse_objects = list() # stores objects of class GroundTruthPerturbationEvaluationObject
 
     mv_predictor = MultiviewScenePredictor(mesh_db)
@@ -437,7 +439,7 @@ def main():
             logger.info(f"Evaluation : {preds_k} (N={len(preds)})")
             if len(preds) == 0:
                 preds = eval_runner.make_empty_predictions()
-            eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds, predicted_gt_coarse_objects=predicted_gt_coarse_objects)
+            eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds, predicted_gt_coarse_objects=predicted_gt_coarse_objects, use_gt_data=use_gt_data)
             preds.cpu()
         else:
             logger.info(f"Skipped: {preds_k} (N={len(preds)})")

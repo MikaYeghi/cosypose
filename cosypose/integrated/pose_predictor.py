@@ -28,7 +28,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                  refiner_model=None,
                  bsz_objects=64,
                  scene_ds=None,
-                 use_gt=True):
+                 use_gt=False):
         super().__init__()
         self.coarse_model = coarse_model
         self.refiner_model = refiner_model
