@@ -34,7 +34,7 @@ class PoseErrorMeter(Meter):
                  n_top=-1):
 
         self.sample_n_points = sample_n_points
-        self.mesh_db = mesh_db.batched().cuda().float()
+        self.mesh_db = mesh_db.batched(resample_n_points=8000).cuda().float() # Use 8000, because for larger sampled points objects are discarded as they don't fit into memory
         self.error_type = error_type.upper()
         self.errors_bsz = errors_bsz
         self.n_top = n_top

@@ -44,7 +44,6 @@ class BulletBatchRenderer:
         self.init_plotters(preload_cache)
 
     def render(self, obj_infos, TCO, K, resolution=(240, 320), render_depth=False):
-        # Randomly shuffle object names
         TCO = torch.as_tensor(TCO).detach()
         TOC = invert_T(TCO).cpu().numpy()
         K = torch.as_tensor(K).cpu().numpy()

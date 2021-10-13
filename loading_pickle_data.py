@@ -166,11 +166,16 @@ class Dataloader:
 
 # dl = Dataloader(file_path="/home/yemika/Mikael/Oxford/Studying/4YP/code/cosypose/local_data/results/tless-siso-n_views=1--4312481950/results_GPU_1.txt")
 # dl = Dataloader(file_path="/home/yemika/Mikael/Oxford/Studying/4YP/code/cosypose/local_data/results/tless-siso-n_views=1--7937853015/results_GPU_0.txt")
-dl = Dataloader(file_path="/home/yemika/Mikael/Oxford/Studying/4YP/code/cosypose/local_data/results/tless-siso-n_views=1--1301812197/results_GPU_0.txt")
+dl = Dataloader(file_path="/home/yemika/Mikael/Oxford/Studying/4YP/code/cosypose/local_data/results/tless-siso-n_views=1--6957483635/results_GPU_0.txt")
 
 # Loading the data
 dl.load_data()
 dl.update_data(dl.get_authors_only())
+
+# Filtering
+filtered = dl.filter_objects(ref_min=0.14)
+for x in dl.get_data():
+    print(x)
 
 # Plotting the data
 dl.plot_data(separation_line=True)

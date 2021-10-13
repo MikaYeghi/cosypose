@@ -14,6 +14,7 @@ from cosypose.lib3d.cosypose_ops import apply_imagespace_predictions
 from cosypose.utils.logging import get_logger
 logger = get_logger(__name__)
 
+import numpy as np
 import pdb
 
 
@@ -89,6 +90,7 @@ class PosePredictor(nn.Module):
         return outputs
 
     def forward(self, images, K, labels, TCO, n_iterations=1):
+        # np.random.shuffle(labels) # Randomly shuffles labels
         bsz, nchannels, h, w = images.shape
         assert K.shape == (bsz, 3, 3)
         assert TCO.shape == (bsz, 4, 4)
@@ -105,7 +107,6 @@ class PosePredictor(nn.Module):
 
             x = torch.cat((images_crop, renders), dim=1)
 
-            # pdb.set_trace()
             model_outputs = self.net_forward(x)
 
             TCO_output = self.update_pose(TCO_input, K_crop, model_outputs['pose'])
