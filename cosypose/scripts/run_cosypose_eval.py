@@ -298,7 +298,7 @@ def main():
         refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
         n_refiner_iterations = 4
-        use_gt_data = False                  # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
+        use_gt_data = True                  # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
     elif 'ycbv' in args.config:
         object_set = 'ycbv'
         refiner_run_id = 'ycbv-refiner-finetune--251020'
