@@ -37,3 +37,26 @@ class GroundTruthPerturbationEvaluationObject():
     def update_refiner_error(self, refiner_error):
         self.refiner_error = refiner_error
     
+
+class GroundTruthPerturbationEvaluationArray():
+    """
+    This class stores an array of objects of class GroundTruthPerturbationEvaluationObject.
+    """
+    def __init__(self, objects=list()) -> None:
+        self.objects = objects
+
+    def __str__(self) -> str:
+        text = f"Total number of objects recorded: {self.length()}."
+        return text
+    
+    def __getitem__(self, i):
+        return self.objects[i]
+
+    def add_object(self, new_object):
+        self.objects.append(new_object)
+    
+    def length(self):
+        return len(self.objects)
+    
+    def get_objects(self):
+        return self.objects

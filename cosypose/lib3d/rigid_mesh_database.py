@@ -28,7 +28,7 @@ class MeshDataBase:
             if aabb:
                 points_n = get_meshes_bounding_boxes(torch.as_tensor(mesh.vertices).unsqueeze(0))[0]
             elif resample_n_points:
-                resample_n_points = min(mesh.vertices.shape[0], 8000)
+                resample_n_points = min(mesh.vertices.shape[0], 8000) # Downsample in order to fit on the GPU
                 points_n = torch.tensor(trimesh.sample.sample_surface(mesh, resample_n_points)[0])
             else:
                 points_n = torch.tensor(mesh.vertices)

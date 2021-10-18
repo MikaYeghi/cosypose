@@ -82,7 +82,7 @@ class MultiviewPredictionRunner:
                         n_coarse_iterations=1, n_refiner_iterations=1,
                         sv_score_th=0.0, skip_mv=True,
                         use_detections_TCO=False,
-                        predicted_gt_coarse_objects=list()):
+                        predicted_gt_coarse_objects=None):
         
         assert detections is not None
         if detections is not None:

@@ -60,7 +60,7 @@ class PoseEvaluation:
         obj_data = tc.concatenate(obj_data)
         return obj_data
 
-    def evaluate(self, obj_predictions, device='cuda', predicted_gt_coarse_objects=list(), use_gt_data=False):
+    def evaluate(self, obj_predictions, device='cuda', predicted_gt_coarse_objects=None, use_gt_data=False):
         for meter in self.meters.values():
             meter.reset()
         obj_predictions = obj_predictions.to(device)

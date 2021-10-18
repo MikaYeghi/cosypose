@@ -94,7 +94,7 @@ class PoseErrorMeter(Meter):
         errors['TCO_norm'] = torch.norm(TXO_pred[:, :3, -1] - TXO_gt[:, :3, -1], dim=-1, p=2)
         return errors
 
-    def compute_errors_batch(self, TXO_pred, TXO_gt, labels, scene_ids=None, view_ids=None, detection_ids=None, predicted_gt_coarse_objects=list(), is_coarse=False, record_errors=False):
+    def compute_errors_batch(self, TXO_pred, TXO_gt, labels, scene_ids=None, view_ids=None, detection_ids=None, predicted_gt_coarse_objects=None, is_coarse=False, record_errors=False):
         errors = []
         ids = torch.arange(len(labels))
         ds = TensorDataset(TXO_pred, TXO_gt, ids)
@@ -114,7 +114,7 @@ class PoseErrorMeter(Meter):
                     error_value = new_error[error_used_gt_coarse].cpu().numpy()[0]
                     if None not in (scene_ids, view_ids, detection_ids): # if data has been passed, try to locate the object in GT-coarse objects and update its errors
                         i = 0
-                        while i < len(predicted_gt_coarse_objects):
+                        while i < predicted_gt_coarse_objects.length():
                             if predicted_gt_coarse_objects[i].scene_id == scene_id and predicted_gt_coarse_objects[i].view_id == view_id and predicted_gt_coarse_objects[i].detection_id == detection_id:
                                 break
                             i += 1
@@ -236,10 +236,10 @@ class PoseErrorMeter(Meter):
                 self.errors_per_object[object_] = [(distortions[counter], errors_array[counter], coarse_predictions[counter], coarse_errors_array[counter])]
             counter += 1
 
-    def add(self, pred_data, gt_data, predicted_gt_coarse_objects=list(), record_errors=True, use_gt_data=False):
+    def add(self, pred_data, gt_data, predicted_gt_coarse_objects=None, record_errors=True, use_gt_data=False):
         # Keep objects which are possible to evaluate
-        objects_to_ignore = self.find_objects_to_ignore(pred_data, gt_data)
-        pred_data, gt_data = self.delete_objects_to_ignore(pred_data, gt_data, objects_to_ignore, use_gt_data=use_gt_data)
+        # objects_to_ignore = self.find_objects_to_ignore(pred_data, gt_data)
+        # pred_data, gt_data = self.delete_objects_to_ignore(pred_data, gt_data, objects_to_ignore, use_gt_data=use_gt_data)
         initial_number_of_objects = len(pred_data) # Number of objects that enter this function
         if initial_number_of_objects == 0:
             print("Empty view. Skipping.")

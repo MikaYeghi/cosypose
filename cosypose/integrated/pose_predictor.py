@@ -44,7 +44,8 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             dataloader = DataLoader(scene_ds, batch_size=64,
                                     num_workers=4,
                                     sampler=sampler, collate_fn=self.collate_fn)
-            self.dataloader = list(tqdm(dataloader))
+            self.ground_truth_data = list(tqdm(dataloader))
+        self.scene_view_counter = {k+1: [] for k in range(20)} # used for counting which scenes and views have been processed
         self.eval()
     
     def collate_fn(self, batch):
@@ -57,7 +58,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         return obj_data
 
     @torch.no_grad()
-    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1, distort=False, coarse_preds=None, predicted_gt_coarse_objects=list()):
+    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1, distort=False, coarse_preds=None, predicted_gt_coarse_objects=None):
         timer = Timer()
         timer.start()
 
@@ -89,6 +90,12 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                                                         boxes_rend=iter_outputs['boxes_rend'],
                                                         boxes_crop=iter_outputs['boxes_crop'])
 
+                for pred in batch_preds:
+                    scene_id = pred.infos[0]
+                    view_id = pred.infos[1]
+                    if view_id not in self.scene_view_counter[scene_id]:
+                        self.scene_view_counter[scene_id].append(view_id)
+
                 if self.use_gt:
                     if distort:
                         batch_preds.register_tensor(name='distortions', tensor=torch.zeros(len(batch_preds), 4).cuda()) # Add tensor to store [x, y, z, theta] values of distortions
@@ -97,15 +104,15 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                         while my_counter < len(batch_preds):
                             i = 0
                             found = False
-                            while i < len(self.dataloader) and not found:
+                            while i < len(self.ground_truth_data) and not found:
                                 pred_scene_id = batch_preds[my_counter].infos[0]
                                 pred_view_id = batch_preds[my_counter].infos[1]
                                 pred_obj_label = batch_preds[my_counter].infos[3]
-                                for j in np.where((self.dataloader[i].infos.scene_id == pred_scene_id) & (self.dataloader[i].infos.view_id == pred_view_id) & (self.dataloader[i].infos.label == pred_obj_label))[0]:
-                                    gt_view_id = self.dataloader[i][j].infos[4]
-                                    gt_obj_label = self.dataloader[i][j].infos[1]
+                                for j in np.where((self.ground_truth_data[i].infos.scene_id == pred_scene_id) & (self.ground_truth_data[i].infos.view_id == pred_view_id) & (self.ground_truth_data[i].infos.label == pred_obj_label))[0]:
+                                    gt_view_id = self.ground_truth_data[i][j].infos[4]
+                                    gt_obj_label = self.ground_truth_data[i][j].infos[1]
                                     if gt_view_id == pred_view_id and gt_obj_label == pred_obj_label:
-                                        batch_preds[my_counter].poses[0:4, 0:4] = self.dataloader[i][j].poses.cuda()
+                                        batch_preds[my_counter].poses[0:4, 0:4] = self.ground_truth_data[i][j].poses.cuda()
                                         found = True
                                     if found:
                                         break
@@ -124,7 +131,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                                 object_id=batch_preds[my_counter].infos[3],
                                 detection_id=batch_preds[my_counter].infos[4]
                             )
-                            predicted_gt_coarse_objects.append(perturbed_object)
+                            predicted_gt_coarse_objects.add_object(perturbed_object)
 
                             my_counter += 1
                     else:
@@ -154,8 +161,9 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                         data_TCO_init=None,
                         n_coarse_iterations=1,
                         n_refiner_iterations=1,
-                        predicted_gt_coarse_objects=list()):
+                        predicted_gt_coarse_objects=None):
 
+        pdb.set_trace()
         preds = dict()
         if data_TCO_init is None:
             assert detections is not None
