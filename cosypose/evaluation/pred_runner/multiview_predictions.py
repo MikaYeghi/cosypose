@@ -8,6 +8,7 @@ from cosypose.utils.logging import get_logger
 from cosypose.datasets.samplers import DistributedSceneSampler
 import cosypose.utils.tensor_collection as tc
 from cosypose.utils.distributed import get_world_size, get_rank, get_tmp_dir
+from cosypose.integrated.multi_init import MultipleInitializer
 
 from torch.utils.data import DataLoader
 import pdb
@@ -82,12 +83,30 @@ class MultiviewPredictionRunner:
                         n_coarse_iterations=1, n_refiner_iterations=1,
                         sv_score_th=0.0, skip_mv=True,
                         use_detections_TCO=False,
-                        predicted_gt_coarse_objects=None):
+                        predicted_gt_coarse_objects=None,
+                        multi_initializer=None,
+                        n_multi_initializations=27):
         
         assert detections is not None
         if detections is not None:
             mask = (detections.infos['score'] >= sv_score_th)
             detections = detections[np.where(mask)[0]]
+
+            if multi_initializer is None:
+                multi_initializer = MultipleInitializer()
+
+            if multi_initializer.get_multi_initializations() is None:
+                # detections = multi_initializer.generate_multi_initialization(detections, n_multi_initializations)
+                scene_id = 1
+                view_id = 303
+                object_label = 'obj_000029'
+                # detections = multi_initializer.pick_object(detections=detections, scene_id=scene_id, view_id=view_id, object_label=object_label)
+                # detections = multi_initializer.generate_multi_initialization(detections, n_repeats=n_multi_initializations)
+                detections = multi_initializer.pick_object(detections=detections, object_label=object_label)
+                detections = multi_initializer.generate_sliced_multi_initialization(detections, n_repeats_per_axis=n_multi_initializations)
+            else:
+                detections = multi_initializer.get_multi_initializations()
+                
             detections.infos['det_id'] = np.arange(len(detections))
             det_index = detections.infos.set_index(['scene_id', 'view_id']).sort_index()
         
@@ -105,7 +124,7 @@ class MultiviewPredictionRunner:
             logger.debug(f'Scene: {scene_id}')
             logger.debug(f'Views: {view_ids}')
             logger.debug(f'Group: {group_id}')
-            logger.debug(f'Image has {n_gt_dets} gt detections. (not used)')
+            logger.debug(f'Image has {n_gt_dets} gt detections.')
 
             if detections is not None:
                 keep_ids, batch_im_ids = [], []
@@ -135,7 +154,8 @@ class MultiviewPredictionRunner:
                     n_coarse_iterations=n_coarse_iterations,
                     data_TCO_init=data_TCO_init,
                     n_refiner_iterations=n_refiner_iterations,
-                    predicted_gt_coarse_objects=predicted_gt_coarse_objects
+                    predicted_gt_coarse_objects=predicted_gt_coarse_objects,
+                    multi_initializer=multi_initializer
                 )
                 candidates.register_tensor('initial_bboxes', detections_.bboxes)
 

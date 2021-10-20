@@ -64,19 +64,14 @@ class PoseEvaluation:
         for meter in self.meters.values():
             meter.reset()
         obj_predictions = obj_predictions.to(device)
+        obj_predictions.infos['error'] = np.nan
         for obj_data_gt in tqdm(self.dataloader):
-            first_record = True # to make sure that GT-coarse objects are recorded only once
             for k, meter in self.meters.items():
-                if first_record:
-                    record_errors = True
-                    first_record = False
-                else:
-                    record_errors = False
-
-                try:
-                    meter.add(obj_predictions, obj_data_gt.to(device), predicted_gt_coarse_objects=predicted_gt_coarse_objects, record_errors=record_errors, use_gt_data=use_gt_data)
-                except Exception as e:
-                    print(e)
+                meter.add(obj_predictions, obj_data_gt.to(device), predicted_gt_coarse_objects=predicted_gt_coarse_objects, use_gt_data=use_gt_data)
+                
+                # Write down the average norm error
+                if len(meter.norm_errors) == len(obj_predictions.infos):
+                    obj_predictions.infos['error'] = meter.norm_errors.copy()
         return self.summary()
 
     def summary(self):

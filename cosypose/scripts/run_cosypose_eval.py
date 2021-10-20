@@ -24,6 +24,7 @@ from cosypose.training.pose_models_cfg import create_model_refiner, create_model
 from cosypose.rendering.bullet_batch_renderer import BulletBatchRenderer
 from cosypose.integrated.pose_predictor import CoarseRefinePosePredictor
 from cosypose.integrated.multiview_predictor import MultiviewScenePredictor
+from cosypose.integrated.multi_init import MultipleInitializer
 
 from cosypose.evaluation.meters.pose_meters import PoseErrorMeter
 from cosypose.evaluation.pred_runner.multiview_predictions import MultiviewPredictionRunner
@@ -223,7 +224,7 @@ def get_pose_meters(scene_ds):
     return meters
 
 
-def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tless', scene_ds=None, use_gt_data=False):
+def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tless', scene_ds=None, use_gt_data=False, coarse_refiner_batch_size=64):
     if object_set == 'tless':
         object_ds_name, urdf_ds_name = 'tless.bop', 'tless.cad'
     else:
@@ -257,7 +258,8 @@ def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tle
     model = CoarseRefinePosePredictor(coarse_model=coarse_model,
                                       refiner_model=refiner_model,
                                       scene_ds=scene_ds,
-                                      use_gt=use_gt_data)
+                                      use_gt=use_gt_data,
+                                      bsz_objects=coarse_refiner_batch_size)
     return model, mesh_db
 
 
@@ -299,7 +301,9 @@ def main():
         refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
         n_refiner_iterations = 4
-        use_gt_data = True                  # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
+        use_gt_data = False          # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
+        n_multi_initializations = 10
+        coarse_refiner_batch_size = 8
     elif 'ycbv' in args.config:
         object_set = 'ycbv'
         refiner_run_id = 'ycbv-refiner-finetune--251020'
@@ -346,17 +350,26 @@ def main():
         scene_ds.frame_index = scene_ds.frame_index[mask].reset_index(drop=True)[:n_frames]
 
     # Predictions
-    predictor, mesh_db = load_models(coarse_run_id, refiner_run_id, n_workers=n_plotters, object_set=object_set, scene_ds=scene_ds, use_gt_data=use_gt_data)
+    predictor, mesh_db = load_models(coarse_run_id, 
+                                    refiner_run_id, 
+                                    n_workers=n_plotters, 
+                                    object_set=object_set, 
+                                    scene_ds=scene_ds, 
+                                    use_gt_data=use_gt_data,
+                                    coarse_refiner_batch_size=coarse_refiner_batch_size)
     predicted_gt_coarse_objects = GroundTruthPerturbationEvaluationArray() # stores objects of class GroundTruthPerturbationEvaluationObject
 
     mv_predictor = MultiviewScenePredictor(mesh_db)
+    multi_initializer = MultipleInitializer()
 
     base_pred_kwargs = dict(
         n_coarse_iterations=n_coarse_iterations,
         n_refiner_iterations=n_refiner_iterations,
         skip_mv=skip_mv,
         pose_predictor=predictor,
-        mv_predictor=mv_predictor
+        mv_predictor=mv_predictor,
+        multi_initializer=multi_initializer,
+        n_multi_initializations=n_multi_initializations
     )
 
     if skip_predictions:
@@ -415,6 +428,7 @@ def main():
     else:
         raise ValueError(ds_name)
     predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
+    predictions_to_evaluate.add(f'{det_key}/coarse/iteration={n_coarse_iterations}')
 
     if args.n_views > 1:
         for k in [
@@ -448,7 +462,7 @@ def main():
     all_predictions = gather_predictions(all_predictions)
 
     # Print information about the data collected
-    print(predicted_gt_coarse_objects)
+    # print(predicted_gt_coarse_objects)
 
     metrics_to_print = dict()
     if 'ycbv' in ds_name:
@@ -498,13 +512,9 @@ def main():
         (save_dir / 'summary.txt').write_text(summary_txt)
         logger.info(f"Saved: {save_dir}")
     
-    file_path = f"{save_dir}/results_GPU_{os.environ['CUDA_VISIBLE_DEVICES']}.txt"
+    file_path = f"{save_dir}/multi_initializations_results.pkl"
     with open(file_path, 'wb') as f:
-        # for x in predicted_gt_coarse_objects.get_objects():
-        pickle.dump(predicted_gt_coarse_objects, f, pickle.HIGHEST_PROTOCOL)
-    file_path = f"{save_dir}/results_scene_view_data.pkl"
-    with open(file_path, 'wb') as f:
-        pickle.dump(predictor.scene_view_counter, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(all_predictions, f, pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':

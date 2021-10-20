@@ -14,6 +14,7 @@ from cosypose.datasets.samplers import DistributedSceneSampler
 from cosypose.utils.distributed import get_world_size, get_rank
 from cosypose.evaluation.data_utils import parse_obs_data
 from cosypose.evaluation.eval_runner.gt_coarse_perturbation_eval import GroundTruthPerturbationEvaluationObject
+from cosypose.integrated.multi_init import MultipleInitializer
 
 import pdb
 from tqdm import tqdm
@@ -58,7 +59,9 @@ class CoarseRefinePosePredictor(torch.nn.Module):
         return obj_data
 
     @torch.no_grad()
-    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1, distort=False, coarse_preds=None, predicted_gt_coarse_objects=None):
+    def batched_model_predictions(self, model, images, K, obj_data, n_iterations=1, 
+                                    distort=False, coarse_preds=None, predicted_gt_coarse_objects=None,
+                                    multi_initializer=None):
         timer = Timer()
         timer.start()
 
@@ -90,11 +93,9 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                                                         boxes_rend=iter_outputs['boxes_rend'],
                                                         boxes_crop=iter_outputs['boxes_crop'])
 
-                for pred in batch_preds:
-                    scene_id = pred.infos[0]
-                    view_id = pred.infos[1]
-                    if view_id not in self.scene_view_counter[scene_id]:
-                        self.scene_view_counter[scene_id].append(view_id)
+                if distort:
+                    assert multi_initializer is not None
+                    batch_preds = multi_initializer.generate_coarse_from_angles(batch_preds)
 
                 if self.use_gt:
                     if distort:
@@ -161,9 +162,10 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                         data_TCO_init=None,
                         n_coarse_iterations=1,
                         n_refiner_iterations=1,
-                        predicted_gt_coarse_objects=None):
+                        predicted_gt_coarse_objects=None,
+                        multi_initializer=None):
 
-        pdb.set_trace()
+        print("Start predicting...")
         preds = dict()
         if data_TCO_init is None:
             assert detections is not None
@@ -174,7 +176,8 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                                                           images, K, data_TCO_init,
                                                           n_iterations=n_coarse_iterations,
                                                           distort=True,
-                                                          predicted_gt_coarse_objects=predicted_gt_coarse_objects)
+                                                          predicted_gt_coarse_objects=predicted_gt_coarse_objects,
+                                                          multi_initializer=multi_initializer)
             for n in range(1, n_coarse_iterations + 1):
                 preds[f'coarse/iteration={n}'] = coarse_preds[f'iteration={n}']
             data_TCO = coarse_preds[f'iteration={n_coarse_iterations}']

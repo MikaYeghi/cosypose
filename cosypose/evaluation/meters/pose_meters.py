@@ -287,7 +287,7 @@ class PoseErrorMeter(Meter):
         """
         These lines of code remove objects that have position vector too far from the ground truth.
         """
-        self.spheres_overlap_check = False # [ADDED LINE]
+        self.spheres_overlap_check = False # prevent removing objects
         if self.spheres_overlap_check:
             diameters = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
             dists = pred_data_filtered[cand_infos['pred_id'].values.tolist()].poses[:, :3, -1] - \
@@ -310,16 +310,19 @@ class PoseErrorMeter(Meter):
                                            detection_ids=list(cand_infos['det_id'].values),
                                            predicted_gt_coarse_objects=predicted_gt_coarse_objects,
                                            record_errors=record_errors)
-        coarse_errors, _ = self.compute_errors_batch(pred_data.coarse_predictions, cand_TXO_gt,
-                                           cand_infos['label'].values, 
-                                           is_coarse=True, 
-                                           scene_ids=list(cand_infos['scene_id'].values),
-                                           view_ids=list(cand_infos['view_id'].values),
-                                           detection_ids=list(cand_infos['det_id'].values),
-                                           predicted_gt_coarse_objects=predicted_gt_coarse_objects,
-                                           record_errors=record_errors)
+        # coarse_errors, _ = self.compute_errors_batch(pred_data.coarse_predictions, cand_TXO_gt,
+        #                                    cand_infos['label'].values, 
+        #                                    is_coarse=True, 
+        #                                    scene_ids=list(cand_infos['scene_id'].values),
+        #                                    view_ids=list(cand_infos['view_id'].values),
+        #                                    detection_ids=list(cand_infos['det_id'].values),
+        #                                    predicted_gt_coarse_objects=predicted_gt_coarse_objects,
+        #                                    record_errors=record_errors)
 
         # Matches can only be objects within thresholds (following BOP).
+        """
+        Edited below.
+        """
         # self.match_threshold = self.match_threshold * 10000 # Extend threshold [ADDED LINE]
         cand_infos['error'] = errors['norm_avg'].cpu().numpy()
         cand_infos['obj_diameter'] = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
@@ -379,6 +382,7 @@ class PoseErrorMeter(Meter):
         self.datas['gt_df'].append(gt)
         self.datas['pred_df'].append(preds)
         self.datas['matches_df'].append(matches)
+        self.norm_errors = errors['norm_avg'].cpu().numpy() # Record norm average errors
 
     def summary(self):
         gt_df = xr.concat(self.datas['gt_df'], dim='gt_id')
