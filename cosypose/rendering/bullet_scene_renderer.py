@@ -8,6 +8,8 @@ from cosypose.simulator.base_scene import BaseScene
 from cosypose.simulator.caching import BodyCache
 from cosypose.simulator.camera import Camera
 
+import pdb
+
 
 class BulletSceneRenderer(BaseScene):
     def __init__(self,
@@ -26,10 +28,10 @@ class BulletSceneRenderer(BaseScene):
 
     def setup_scene(self, obj_infos):
         labels = [obj['name'] for obj in obj_infos]
-        bodies = self.body_cache.get_bodies_by_labels(labels)
+        bodies = self.body_cache.get_bodies_by_labels(labels) # Loads objects into pybullet world system
         for (obj_info, body) in zip(obj_infos, bodies):
             TWO = Transform(obj_info['TWO'])
-            body.pose = TWO
+            body.pose = TWO # Changes the body coordinate to np.eye(4)
             color = obj_info.get('color', None)
             if color is not None:
                 pb.changeVisualShape(body.body_id, -1, physicsClientId=0, rgbaColor=color)
@@ -44,6 +46,7 @@ class BulletSceneRenderer(BaseScene):
             cam = Camera(resolution=resolution, client_id=self.client_id)
             cam.set_intrinsic_K(K)
             cam.set_extrinsic_T(TWC)
+            # THE LINE BELOW GENERATES IMAGES
             cam_obs_ = cam.get_state()
             if self.background_color is not None:
                 im = cam_obs_['rgb']
@@ -61,4 +64,5 @@ class BulletSceneRenderer(BaseScene):
 
     def render_scene(self, obj_infos, cam_infos, render_depth=False):
         self.setup_scene(obj_infos)
+        # THE LINE BELOW GENERATES IMAGES
         return self.render_images(cam_infos, render_depth=render_depth)

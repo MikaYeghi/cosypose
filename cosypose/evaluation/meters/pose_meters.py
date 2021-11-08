@@ -287,7 +287,6 @@ class PoseErrorMeter(Meter):
         """
         These lines of code remove objects that have position vector too far from the ground truth.
         """
-        self.spheres_overlap_check = False # prevent removing objects
         if self.spheres_overlap_check:
             diameters = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
             dists = pred_data_filtered[cand_infos['pred_id'].values.tolist()].poses[:, :3, -1] - \
@@ -326,8 +325,8 @@ class PoseErrorMeter(Meter):
         # self.match_threshold = self.match_threshold * 10000 # Extend threshold [ADDED LINE]
         cand_infos['error'] = errors['norm_avg'].cpu().numpy()
         cand_infos['obj_diameter'] = [self.mesh_db.infos[k]['diameter_m'] for k in cand_infos['label']]
-        # keep = cand_infos['error'] <= self.match_threshold * cand_infos['obj_diameter']
-        # cand_infos = cand_infos[keep].reset_index(drop=True)
+        keep = cand_infos['error'] <= self.match_threshold * cand_infos['obj_diameter']
+        cand_infos = cand_infos[keep].reset_index(drop=True)
 
         # Match predictions to ground truth poses
         matches = match_poses(cand_infos, group_keys=group_keys)
@@ -335,11 +334,7 @@ class PoseErrorMeter(Meter):
         # Save all informations in xarray datasets
         gt_keys = group_keys + ['gt_inst_id', 'valid'] + (['visib_fract'] if 'visib_fract' in gt_infos else [])
         gt = gt_data.infos.loc[:, gt_keys]
-        # gt = gt[gt.label.isin(matches.label.tolist())]
-        # gt = gt.reset_index(drop=True)
         preds = pred_data.infos.loc[:, group_keys + ['pred_inst_id', 'score']]
-        # preds = preds[preds.label.isin(matches.label.tolist())]
-        # preds = preds.reset_index(drop=True)
         matches = matches.loc[:, group_keys + ['pred_inst_id', 'gt_inst_id', 'cand_id']]
 
         gt = xr.Dataset(gt).rename({'dim_0': 'gt_id'})
@@ -432,7 +427,8 @@ class PoseErrorMeter(Meter):
 
         df = pred_df[['label', valid_k, 'score']].to_dataframe().set_index(['label'])
         for label, label_n_gt in n_gts.items():
-            if df.index.contains(label):
+            # if df.index.contains(label): # [MIKAEL] not compatible with the current version
+            if label in df.index.tolist():
                 label_df = df.loc[[label]]
                 if label_df[valid_k].sum() > 0:
                     ap, label_df = compute_ap(label_df, label_n_gt)

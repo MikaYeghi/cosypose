@@ -20,6 +20,7 @@ def check_update_config(config):
 
 def create_model_pose(cfg, renderer, mesh_db):
     n_inputs = 6
+    # n_inputs = 128
     backbone_str = cfg.backbone_str
     if backbone_str == 'efficientnet-b3':
         backbone = EfficientNet.from_name('efficientnet-b3', in_channels=n_inputs)

@@ -5,6 +5,8 @@ import transforms3d
 from cosypose.lib3d import Transform
 from cosypose.lib3d.rotations import euler2quat
 
+import pdb
+
 
 def proj_from_K(K, h, w, near, far):
     # NOTE: inspired from http://ksimek.github.io/2013/06/03/calibrated_cameras_in_opengl/
@@ -74,6 +76,7 @@ class Camera:
         up = 'z'
         self._view_params = dict(yaw=yaw, pitch=pitch, roll=roll,
                                  target=target, distance=distance)
+        # print(f"Target: {target}, distance: {distance}, yaw {yaw}, pitch: {pitch}, roll: {roll}")
         self._view_mat = pb.computeViewMatrixFromYawPitchRoll(
             target, distance, yaw, pitch, roll, 'xyz'.index(up))
 
@@ -136,6 +139,7 @@ class Camera:
     def get_state(self):
         obs = dict()
         # Get images
+        # THE LINE BELOW GENERATES IMAGES
         rgba, mask, depth = self._shot()
         rgb = rgba[..., :3]
         obs.update(rgb=rgb, mask=mask, depth=depth)
@@ -162,6 +166,17 @@ class Camera:
         h, w = self._shape
         renderer = pb.ER_BULLET_HARDWARE_OPENGL
 
+        # THE LINE BELOW GENERATES IMAGES
+        """
+        w - image width
+        h - image height
+        self._proj_mat - matrix which defines camera's intrinsic parameters for projection onto the camera view plane (to create an image)
+        self._view_mat - defines camera position and orientation
+        renderer - some number (?)
+        self._render_flags - some number (?)
+        self._render_options = {'shadow': 1}
+        self._client_id - acts as a unique pybullet server ID
+        """
         w, h, rgba, depth, mask = pb.getCameraImage(
             width=w,
             height=h,

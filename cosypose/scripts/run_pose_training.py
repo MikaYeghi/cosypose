@@ -128,6 +128,7 @@ def make_cfg(args):
         cfg.train_ds_names = [('synthetic.tless-1M.train', 1),
                               ('tless.primesense.train', 5)]
         cfg.val_ds_names = [('synthetic.tless-1M.val', 1)]
+
         cfg.test_ds_names = ['tless.primesense.test', ]
         cfg.input_resize = (540, 720)
 
@@ -164,6 +165,19 @@ def make_cfg(args):
         elif args.config == 'tless-refiner-ablation-augm':
             cfg.TCO_input_generator = 'gt+noise'
             cfg.rgb_augmentation = False
+        elif args.config == 'tless-custom-training':
+            # cfg.train_ds_names = [('tless.debug.dataset', 1)]
+            # cfg.val_ds_names = [('tless.debug.dataset', 1)]
+            cfg.test_ds_names = []
+            cfg.n_epochs = 20
+            # cfg.val_epoch_interval = 1
+            cfg.batch_size = 4
+            # cfg.epoch_size = 1000 * cfg.batch_size
+            cfg.background_augmentation = True 
+            cfg.rgb_augmentation = True
+            cfg.n_dataloader_workers = 8 
+            cfg.n_rendering_workers = 0
+            # cfg.n_test_frames = 10
 
         else:
             raise ValueError(args.config)

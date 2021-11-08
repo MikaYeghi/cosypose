@@ -175,7 +175,7 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             coarse_preds = self.batched_model_predictions(self.coarse_model,
                                                           images, K, data_TCO_init,
                                                           n_iterations=n_coarse_iterations,
-                                                          distort=True,
+                                                          distort=False,
                                                           predicted_gt_coarse_objects=predicted_gt_coarse_objects,
                                                           multi_initializer=multi_initializer)
             for n in range(1, n_coarse_iterations + 1):

@@ -67,7 +67,7 @@ class PoseEvaluation:
         obj_predictions.infos['error'] = np.nan
         for obj_data_gt in tqdm(self.dataloader):
             for k, meter in self.meters.items():
-                meter.add(obj_predictions, obj_data_gt.to(device), predicted_gt_coarse_objects=predicted_gt_coarse_objects, use_gt_data=use_gt_data)
+                meter.add(obj_predictions, obj_data_gt.to(device), predicted_gt_coarse_objects=predicted_gt_coarse_objects, use_gt_data=use_gt_data, record_errors=False)
                 
                 # Write down the average norm error
                 if len(meter.norm_errors) == len(obj_predictions.infos):

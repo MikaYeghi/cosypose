@@ -4,6 +4,8 @@ from copy import deepcopy
 from collections import defaultdict
 from .client import BulletClient
 
+import pdb
+
 
 class BodyCache:
     def __init__(self, urdf_ds, client_id):

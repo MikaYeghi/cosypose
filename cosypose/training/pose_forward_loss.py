@@ -9,6 +9,9 @@ from cosypose.lib3d.cosypose_ops import (
 )
 from cosypose.lib3d.mesh_losses import compute_ADD_L1_loss
 
+import pdb
+from matplotlib import pyplot as plt
+
 
 def cast(obj):
     return obj.cuda(non_blocking=True)
@@ -43,6 +46,7 @@ def h_pose(model, mesh_db, data, meters,
         raise ValueError('Unknown input generator', input_generator)
 
     # model.module.enable_debug()
+    # TCO_init = TCO_possible_gt[0, :TCO_init.shape[0], ...]
     outputs = model(images=images, K=K, labels=labels,
                     TCO=TCO_init, n_iterations=n_iterations)
     # raise ValueError
@@ -62,7 +66,8 @@ def h_pose(model, mesh_db, data, meters,
                 loss_fn = loss_refiner_CO_disentangled_quaternions
             else:
                 raise ValueError
-            pose_outputs = model_outputs['pose']
+                
+            pose_outputs = model_outputs['pose']            
             loss_TCO_iter = loss_fn(
                 TCO_possible_gt=TCO_possible_gt,
                 TCO_input=TCO_input,

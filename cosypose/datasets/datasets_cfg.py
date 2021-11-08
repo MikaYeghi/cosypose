@@ -7,6 +7,7 @@ from cosypose.utils.logging import get_logger
 from .bop_object_datasets import BOPObjectDataset
 from .bop import BOPDataset, remap_bop_targets
 from .urdf_dataset import BOPUrdfDataset, OneUrdfDataset
+from .ply_dataset import BOPPlyDataset
 from .texture_dataset import TextureDataset
 
 
@@ -40,6 +41,9 @@ def make_scene_dataset(ds_name, n_frames=None):
     elif ds_name == 'tless.primesense.test.bop19':
         ds = _make_tless_dataset('test_primesense')
         ds = keep_bop19(ds)
+
+    elif ds_name == 'tless.debug.dataset':
+        ds = _make_tless_dataset('tless_debug_dataset')
 
     # YCBV
     elif ds_name == 'ycbv.train.real':
@@ -179,6 +183,15 @@ def make_object_dataset(ds_name):
 
     else:
         raise ValueError(ds_name)
+    return ds
+
+
+def make_ply_dataset(ds_name):
+    if ds_name == 'tless.cad':
+        ds = BOPPlyDataset(LOCAL_DATA_DIR / 'bop_datasets' / 'tless' / 'models_cad')
+    else:
+        raise ValueError(ds_name)
+
     return ds
 
 

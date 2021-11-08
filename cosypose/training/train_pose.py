@@ -29,6 +29,7 @@ from cosypose.scripts.run_cosypose_eval import (
     load_pix2pose_results, load_posecnn_results, get_pose_meters)
 
 from cosypose.rendering.bullet_batch_renderer import BulletBatchRenderer
+from cosypose.rendering.pytorch3d_scene_renderer import Pytorch3DSceneRenderer
 from cosypose.lib3d.rigid_mesh_database import MeshDataBase
 
 from .pose_forward_loss import h_pose
@@ -38,6 +39,8 @@ from .pose_models_cfg import create_model_pose, check_update_config
 from cosypose.utils.logging import get_logger
 from cosypose.utils.distributed import get_world_size, get_rank, sync_model, init_distributed_mode, reduce_dict
 from torch.backends import cudnn
+
+import pdb
 
 cudnn.benchmark = True
 logger = get_logger(__name__)
@@ -56,7 +59,7 @@ def log(config, model,
         ckpt_name += '.pth.tar'
         path = save_dir / ckpt_name
         torch.save({'state_dict': model.module.state_dict(),
-                    'epoch': epoch}, path)
+                    'epoch': epoch}, path, _use_new_zipfile_serialization=False)
 
     save_checkpoint(model)
     with open(save_dir / 'log.txt', 'a') as f:
@@ -190,7 +193,7 @@ def train_pose(args):
 
     if args.resume_run_id:
         resume_dir = EXP_DIR / args.resume_run_id
-        resume_args = yaml.load((resume_dir / 'config.yaml').read_text())
+        resume_args = yaml.load((resume_dir / 'config.yaml').read_text(), Loader=yaml.UnsafeLoader) # [MIKAEL] added unsafe loader
         keep_fields = set(['resume_run_id', 'epoch_size', ])
         vars(args).update({k: v for k, v in vars(resume_args).items() if k not in keep_fields})
 
@@ -249,14 +252,14 @@ def train_pose(args):
     ds_iter_val = MultiEpochDataLoader(ds_iter_val)
 
     # Make model
-    renderer = BulletBatchRenderer(object_set=args.urdf_ds_name, n_workers=args.n_rendering_workers)
+    # renderer = BulletBatchRenderer(object_set=args.urdf_ds_name, n_workers=args.n_rendering_workers)
+    renderer = Pytorch3DSceneRenderer(ply_ds=args.urdf_ds_name, device=device)
     object_ds = make_object_dataset(args.object_ds_name)
     mesh_db = MeshDataBase.from_object_ds(object_ds).batched(n_sym=args.n_symmetries_batch).cuda().float()
 
     model = create_model_pose(cfg=args, renderer=renderer, mesh_db=mesh_db).cuda()
 
     eval_bundle = make_eval_bundle(args, model)
-
     if args.resume_run_id:
         resume_dir = EXP_DIR / args.resume_run_id
         path = resume_dir / 'checkpoint.pth.tar'
@@ -274,9 +277,9 @@ def train_pose(args):
         logger.info(f'Using pretrained model from {pretrain_path}.')
         model.load_state_dict(torch.load(pretrain_path)['state_dict'])
 
-    # Synchronize models across processes.
+    # Synchronize models across processes. [EDIT: FIND_UNUSED_PARAMETER FOR DEBUGGING. REMOVE IN THE FUTURE.]
     model = sync_model(model)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[device], output_device=device)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[device], output_device=device, find_unused_parameters=True)
 
     # Optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)

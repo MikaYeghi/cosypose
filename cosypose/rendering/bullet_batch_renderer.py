@@ -5,6 +5,7 @@ import multiprocessing
 from cosypose.lib3d.transform_ops import invert_T
 from .bullet_scene_renderer import BulletSceneRenderer
 
+import pdb
 
 def init_renderer(urdf_ds, preload=True):
     renderer = BulletSceneRenderer(urdf_ds=urdf_ds,
@@ -53,6 +54,7 @@ class BulletBatchRenderer:
 
         # NOTE: Could be faster with pytorch 3.8's sharedmemory
         for n in np.arange(bsz):
+            # print(obj_infos[n])
             obj_info = dict(
                 name=obj_infos[n]['name'],
                 TWO=np.eye(4)
@@ -67,6 +69,7 @@ class BulletBatchRenderer:
                 kwargs['data_id'] = n
                 self.in_queue.put(kwargs)
             else:
+                # THE LINE BELOW GENERATES IMAGES
                 cam_obs = self.plotters[0].render_scene(**kwargs)
                 images = np.stack([d['rgb'] for d in cam_obs])
                 depth = np.stack([d['depth'] for d in cam_obs]) if render_depth else None

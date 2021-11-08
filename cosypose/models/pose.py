@@ -16,6 +16,10 @@ logger = get_logger(__name__)
 
 import numpy as np
 import pdb
+from cosypose.models.embednet import embednet
+import cv2
+from tqdm import tqdm
+from matplotlib import pyplot as plt
 
 
 class PosePredictor(nn.Module):
@@ -38,6 +42,9 @@ class PosePredictor(nn.Module):
 
         self.debug = False
         self.tmp_debug = dict()
+
+        # Initialize the Embeddings Network
+        # self.embednet = embednet(backbone='resnet34', pretrained=True).cuda()
 
     def enable_debug(self):
         self.debug = True
@@ -89,8 +96,40 @@ class PosePredictor(nn.Module):
             outputs[k] = head(x)
         return outputs
 
+    def plot_crop(self, image, K, boxes_crop, label):
+        """
+        This function plots cropped images.
+        """
+        from matplotlib import pyplot as plt
+        print(label)
+        print(boxes_crop)
+        print(image.shape)
+        crop_width = int(boxes_crop[2] - boxes_crop[0])
+        crop_height = int(boxes_crop[3] - boxes_crop[1])
+        print(crop_width)
+        print(crop_height)
+        plt.imshow(image.cpu())
+        plt.show()
+        height, width = image.shape[:2]
+        final_image = image.clone().detach()
+        for i in tqdm(range(height)):
+            for j in range(width):
+                old_vector = torch.tensor([j, i, 1.0], dtype=torch.float32, device='cuda:0')
+                new_vector = torch.matmul(K, old_vector).to('cuda:0')
+                new_vector = new_vector / new_vector[2]
+                new_vector = torch.round(new_vector).int()[:2]
+
+                # if 0 <= new_vector[1] < crop_height and 0 <= new_vector[0] < crop_width:
+                if 0 <= new_vector[1] < 240 and 0 <= new_vector[0] < 320:
+                    # final_image[i, j] = image[new_vector[1], new_vector[0]]
+                    final_image[i, j] = image[i, j]
+                else:
+                    final_image[i, j] = 0.0
+        plt.imshow(final_image.cpu())
+        plt.show()
+        pdb.set_trace()
+
     def forward(self, images, K, labels, TCO, n_iterations=1):
-        # np.random.shuffle(labels) # Randomly shuffles labels
         bsz, nchannels, h, w = images.shape
         assert K.shape == (bsz, 3, 3)
         assert TCO.shape == (bsz, 4, 4)
@@ -101,9 +140,32 @@ class PosePredictor(nn.Module):
         for n in range(n_iterations):
             TCO_input = TCO_input.detach()
             images_crop, K_crop, boxes_rend, boxes_crop = self.crop_inputs(images, K, TCO_input, labels)
+            # K_new = torch.matmul(K_crop[0], torch.inverse(K[0]))
+            # image = images[0]
+            # image = image.permute(1,2,0)
+            # plt.imshow(image.cpu().numpy())
+            # plt.show()
+            # self.plot_crop(image, K_new, boxes_crop[0], labels[0])
+
+            # print("ORIGINAL K, CROP K AND BOXES CROP")
+            # print(K)
+            # print(K_crop)
+            # print(boxes_crop)
+            # print(TCO_input)
+            # print("RENDER BELOW")
             renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
                                            TCO=TCO_input,
                                            K=K_crop, resolution=self.render_size)
+            # renders = renders.to('cuda')
+            """
+            # Pass through the EmbedNet
+            embednet_images_crop = self.embednet(images_crop).cuda()
+            images_crop = embednet_images_crop
+            # Process renders
+            additional_channels = torch.rand(size=(bsz, images_crop.shape[1], images_crop.shape[2], images_crop.shape[3])).cuda()
+            renders = additional_channels
+            # print(f"Images shape: {images_crop.shape}. Renders shape: {renders.shape}")
+            """
 
             x = torch.cat((images_crop, renders), dim=1)
 

@@ -3,6 +3,8 @@ import torch
 from .rotations import compute_rotation_matrix_from_ortho6d, compute_rotation_matrix_from_quaternions
 from .transform_ops import transform_pts
 
+import pdb
+
 l1 = lambda diff: diff.abs()
 l2 = lambda diff: diff ** 2
 
