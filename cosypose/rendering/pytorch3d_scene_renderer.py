@@ -7,6 +7,7 @@ from pytorch3d.structures import Meshes
 from pytorch3d.renderer import (
     PerspectiveCameras,
     DirectionalLights,
+    AmbientLights,
     RasterizationSettings, 
     MeshRenderer, 
     MeshRasterizer,
@@ -41,12 +42,12 @@ class Pytorch3DSceneRenderer:
         TCO = torch.as_tensor(TCO).detach()
         # TOC = invert_T(TCO).cpu().numpy()
         # TOC = TCO.detach().cpu().numpy()
-        K = torch.as_tensor(K).cpu().numpy()
+        # K = torch.as_tensor(K).cpu().numpy()
+        K = torch.as_tensor(K)
         bsz = len(TCO)
         assert TCO.shape == (bsz, 4, 4)
         assert K.shape == (bsz, 3, 3)
 
-        # rendered_images = list()
         rendered_images = torch.empty((1, resolution[0], resolution[1], 3)).to(self.device)
 
         for n in np.arange(bsz):
@@ -79,9 +80,11 @@ class Pytorch3DSceneRenderer:
         verts, faces = load_ply(obj_path)
 
         # Scale the object as in the original paper
-        verts = torch.tensor([[x[0] * scale, x[1] * scale, x[2] * scale] for x in verts], dtype=verts.dtype)
+        # pdb.set_trace()
+        # verts = torch.tensor([[x[0] * scale, x[1] * scale, x[2] * scale] for x in verts], dtype=verts.dtype)
         verts.to(self.device)
         faces.to(self.device)
+        verts = verts * scale # scale vertices
 
         # Generate the mesh
         verts_features=torch.tensor([[1.0, 1.0, 1.0] for _ in range(len(verts))])
@@ -154,7 +157,6 @@ class Pytorch3DSceneRenderer:
         """
         image = renderer(object_mesh)
         image = image[0, ..., :3]
-        # image = image.cpu().numpy()
         # from matplotlib import pyplot as plt
         # plt.imshow(image.cpu().numpy())
         # plt.show()
