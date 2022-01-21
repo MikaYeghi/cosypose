@@ -157,7 +157,7 @@ class PosePredictor(nn.Module):
             renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
                                            TCO=TCO_input,
                                            K=K_crop, resolution=self.render_size)
-            # renders = renders.to('cuda')
+
             """
             # Pass through the EmbedNet
             embednet_images_crop = self.embednet(images_crop).cuda()

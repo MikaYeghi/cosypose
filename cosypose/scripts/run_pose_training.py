@@ -170,7 +170,7 @@ def make_cfg(args):
             cfg.train_ds_names = [('tless.debug.dataset', 16)]
             cfg.val_ds_names = [('tless.debug.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 200
+            cfg.n_epochs = 50
             # cfg.val_epoch_interval = 1
             cfg.batch_size = 4
             cfg.epoch_size = 10 * cfg.batch_size

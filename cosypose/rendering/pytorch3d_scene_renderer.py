@@ -144,7 +144,7 @@ class Pytorch3DSceneRenderer:
                 device=self.device, 
                 cameras=cameras,
                 lights=lights,
-                blend_params=BlendParams(background_color=(1.0, 1.0, 1.0))
+                blend_params=BlendParams(background_color=(0.0, 0.0, 0.0))
             )
         )
 
