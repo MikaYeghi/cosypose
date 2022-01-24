@@ -299,7 +299,7 @@ def main():
         object_set = 'tless'
         coarse_run_id = 'tless-coarse--10219'
         # refiner_run_id = 'tless-refiner--585928'
-        refiner_run_id = 'tless-refiner-custom--160692'
+        refiner_run_id = 'tless-refiner--585928'
         n_coarse_iterations = 1
         n_refiner_iterations = 4
         use_gt_data = False          # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose

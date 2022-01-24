@@ -187,6 +187,14 @@ def run_eval(eval_bundle, epoch):
             errors[ds_name] = results['summary']
     return errors
 
+def make_renderer(args, device):
+    if args.renderer == 'pybullet':
+        renderer = BulletBatchRenderer(object_set=args.urdf_ds_name, n_workers=args.n_rendering_workers)
+    elif args.renderer == 'pytorch3d':
+        renderer = Pytorch3DSceneRenderer(ply_ds=args.urdf_ds_name, device=device, n_feature_channels=args.n_feature_channels, features_on=args.features_on)
+    else:
+        raise NotImplementedError
+    return renderer    
 
 def train_pose(args):
     torch.set_num_threads(1)
@@ -252,8 +260,10 @@ def train_pose(args):
     ds_iter_val = MultiEpochDataLoader(ds_iter_val)
 
     # Make model
-    # renderer = BulletBatchRenderer(object_set=args.urdf_ds_name, n_workers=args.n_rendering_workers)
-    renderer = Pytorch3DSceneRenderer(ply_ds=args.urdf_ds_name, device=device)
+    # args.renderer = 'pybullet'
+    renderer = make_renderer(args, device)
+    # args.renderer = 'pytorch3d'
+    # renderer_ = make_renderer(args, device)
     object_ds = make_object_dataset(args.object_ds_name)
     mesh_db = MeshDataBase.from_object_ds(object_ds).batched(n_sym=args.n_symmetries_batch).cuda().float()
 

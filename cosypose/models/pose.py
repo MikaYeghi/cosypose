@@ -25,7 +25,7 @@ from matplotlib import pyplot as plt
 class PosePredictor(nn.Module):
     def __init__(self, backbone, renderer,
                  mesh_db, render_size=(240, 320),
-                 pose_dim=9):
+                 pose_dim=9, features_on=False):
         super().__init__()
 
         self.backbone = backbone
@@ -33,6 +33,7 @@ class PosePredictor(nn.Module):
         self.mesh_db = mesh_db
         self.render_size = render_size
         self.pose_dim = pose_dim
+        self.features_on = features_on # [MIKAEL] if true, then uses features instead of RGB
 
         n_features = backbone.n_features
 
@@ -44,7 +45,8 @@ class PosePredictor(nn.Module):
         self.tmp_debug = dict()
 
         # Initialize the Embeddings Network
-        # self.embednet = embednet(backbone='resnet34', pretrained=True).cuda()
+        if features_on:
+            self.embednet = embednet(backbone='resnet34', pretrained=True).cuda()
 
     def enable_debug(self):
         self.debug = True
@@ -154,19 +156,12 @@ class PosePredictor(nn.Module):
             # print(boxes_crop)
             # print(TCO_input)
             # print("RENDER BELOW")
+            if self.features_on:
+                images_crop = self.embednet(images_crop)
+
             renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
                                            TCO=TCO_input,
-                                           K=K_crop, resolution=self.render_size)
-
-            """
-            # Pass through the EmbedNet
-            embednet_images_crop = self.embednet(images_crop).cuda()
-            images_crop = embednet_images_crop
-            # Process renders
-            additional_channels = torch.rand(size=(bsz, images_crop.shape[1], images_crop.shape[2], images_crop.shape[3])).cuda()
-            renders = additional_channels
-            # print(f"Images shape: {images_crop.shape}. Renders shape: {renders.shape}")
-            """
+                                           K=K_crop, resolution=images_crop.shape[-2:])
 
             x = torch.cat((images_crop, renders), dim=1)
 

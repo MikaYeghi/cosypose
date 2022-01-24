@@ -166,19 +166,23 @@ def make_cfg(args):
             cfg.TCO_input_generator = 'gt+noise'
             cfg.rgb_augmentation = False
         elif args.config == 'tless-refiner-custom':
-            print("HERE")
-            cfg.train_ds_names = [('tless.debug.dataset', 16)]
-            cfg.val_ds_names = [('tless.debug.dataset', 1)]
+            # cfg.train_ds_names = [('tless.debug.dataset', 16)]
+            # cfg.val_ds_names = [('tless.debug.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 50
+            cfg.n_epochs = 500
+            cfg.lr_epoch_decay = 100
+            # cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
             cfg.batch_size = 4
-            cfg.epoch_size = 10 * cfg.batch_size
+            # cfg.epoch_size = 10 * cfg.batch_size
             cfg.background_augmentation = False 
             cfg.rgb_augmentation = False
             cfg.n_dataloader_workers = 8 
-            cfg.n_rendering_workers = 4
+            cfg.n_rendering_workers = 8
             cfg.TCO_input_generator = 'gt+noise'
+            cfg.renderer = 'pytorch3d'
+            cfg.features_on = False
+            cfg.n_feature_channels = 64
             # cfg.n_test_frames = 10
 
         else:

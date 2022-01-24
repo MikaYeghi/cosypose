@@ -12,12 +12,17 @@ from pytorch3d.renderer import (
     MeshRenderer, 
     MeshRasterizer,
     HardPhongShader,
-    TexturesVertex
+    SoftPhongShader,
+    TexturesVertex,
+    TexturesAtlas,
+    HardFlatShader
 )
 from pytorch3d.renderer.blending import BlendParams
 
 import torch
 import numpy as np
+from cosypose.features.feature_loader import FeatureLoader
+from cosypose.rendering.feature_shader import FeatureShader
 
 import pdb
 from pprint import pprint
@@ -26,7 +31,9 @@ import time
 class Pytorch3DSceneRenderer:
     def __init__(self,
                 ply_ds='ycbv',
-                device='cpu'):
+                device='cpu',
+                n_feature_channels=64,
+                features_on=False):
         self.ply_ds = make_ply_dataset(ply_ds)
         self.opencv_to_pytorch3d = torch.tensor([[-1, 0, 0], [0, -1, 0], [0, 0, 1]], dtype=torch.float, device=device) # conversion matrix from opencv to pytorch3d
         # Connect to the device
@@ -38,6 +45,14 @@ class Pytorch3DSceneRenderer:
             self.device = torch.device("cpu")
             print("Using CPU for rendering")
 
+        # Load the feature loader
+        self.features_on = features_on
+        if features_on:
+            self.feature_loader = FeatureLoader(number_of_channels=n_feature_channels) # [MIKAEL] loads features for CAD models
+            self.n_feature_channels = n_feature_channels
+        else:
+            self.n_feature_channels = 3
+
     def render(self, obj_infos, TCO, K, resolution=(240, 320)):
         TCO = torch.as_tensor(TCO).detach()
         # TOC = invert_T(TCO).cpu().numpy()
@@ -48,7 +63,7 @@ class Pytorch3DSceneRenderer:
         assert TCO.shape == (bsz, 4, 4)
         assert K.shape == (bsz, 3, 3)
 
-        rendered_images = torch.empty((1, resolution[0], resolution[1], 3)).to(self.device)
+        rendered_images = torch.empty((1, resolution[0], resolution[1], self.n_feature_channels)).to(self.device)
 
         for n in np.arange(bsz):
             obj_info = dict(
@@ -61,13 +76,12 @@ class Pytorch3DSceneRenderer:
                 # TWC=TOC[n],
                 TWC=TCO[n],
             )
-            
+
             object_mesh = self.load_object(obj_info) # load the object mesh
             renderer = self.setup_scene(cam_info) # setup the scene
             image = self.shot(object_mesh, renderer, resolution) # render the image
-            # print(cam_info['TWC'])
 
-            rendered_images = torch.cat((rendered_images, image.unsqueeze(0)), 0)
+            rendered_images = torch.cat((rendered_images, image), 0)
 
         rendered_images = rendered_images[1:] # takes care of the first empty tensor
         rendered_images = rendered_images.permute(0, 3, 1, 2)
@@ -80,14 +94,17 @@ class Pytorch3DSceneRenderer:
         verts, faces = load_ply(obj_path)
 
         # Scale the object as in the original paper
-        # pdb.set_trace()
         # verts = torch.tensor([[x[0] * scale, x[1] * scale, x[2] * scale] for x in verts], dtype=verts.dtype)
         verts.to(self.device)
         faces.to(self.device)
         verts = verts * scale # scale vertices
 
         # Generate the mesh
-        verts_features=torch.tensor([[1.0, 1.0, 1.0] for _ in range(len(verts))])
+        if self.features_on:
+            verts_features = self.feature_loader.get_features()[label]
+        else:
+            colour = 1.35
+            verts_features=torch.tensor([[colour, colour, colour] for _ in range(len(verts))])
         verts_features = torch.unsqueeze(verts_features, 0).to(self.device)
         textures = TexturesVertex(verts_features=verts_features)
         mesh = Meshes(verts=[verts], faces=[faces], textures=textures).to(self.device)
@@ -133,20 +150,29 @@ class Pytorch3DSceneRenderer:
                                                 max_faces_per_bin=150000,
                                             )
 
-        lights = DirectionalLights(device=self.device, direction=((0,0,1),))
-
-        renderer = MeshRenderer(
-            rasterizer=MeshRasterizer(
-                cameras=cameras, 
-                raster_settings=raster_settings
-            ),
-            shader=HardPhongShader(
+        if self.features_on:
+            shader = FeatureShader(
+                device=self.device, 
+                cameras=cameras,
+            )
+        else:
+            lights = DirectionalLights(device=self.device, direction=((0,0,1),)).to(self.device)
+            shader = SoftPhongShader(
                 device=self.device, 
                 cameras=cameras,
                 lights=lights,
                 blend_params=BlendParams(background_color=(0.0, 0.0, 0.0))
             )
-        )
+
+        rasterizer = MeshRasterizer(
+                cameras=cameras, 
+                raster_settings=raster_settings
+            )
+
+        renderer = MeshRenderer(
+            rasterizer=rasterizer,
+            shader=shader
+        ).to(self.device)
 
         return renderer
 
@@ -156,9 +182,18 @@ class Pytorch3DSceneRenderer:
         Returns an image of shape (h, w, 3) and type numpy array.
         """
         image = renderer(object_mesh)
-        image = image[0, ..., :3]
+        image = image[0, ..., :self.n_feature_channels]
+
+        if self.features_on:
+            image = image.permute(2, 0, 1, 3)
+        else:
+            image = image.unsqueeze(0)
+        
+        """
+        Use the lines below to plot rendered images (only if using features_on=False).
+        """
         # from matplotlib import pyplot as plt
-        # plt.imshow(image.cpu().numpy())
+        # plt.imshow(image[0].cpu().numpy())
         # plt.show()
 
         return image

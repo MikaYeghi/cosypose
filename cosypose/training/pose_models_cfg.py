@@ -19,8 +19,10 @@ def check_update_config(config):
 
 
 def create_model_pose(cfg, renderer, mesh_db):
-    n_inputs = 6
-    # n_inputs = 128
+    if cfg.features_on:
+        n_inputs = 128
+    else:
+        n_inputs = 6
     backbone_str = cfg.backbone_str
     if backbone_str == 'efficientnet-b3':
         backbone = EfficientNet.from_name('efficientnet-b3', in_channels=n_inputs)
@@ -44,7 +46,8 @@ def create_model_pose(cfg, renderer, mesh_db):
                           renderer=renderer,
                           mesh_db=mesh_db,
                           render_size=render_size,
-                          pose_dim=pose_dim)
+                          pose_dim=pose_dim,
+                          features_on=cfg.features_on)
     return model
 
 
