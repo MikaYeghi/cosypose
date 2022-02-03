@@ -191,7 +191,11 @@ def make_renderer(args, device):
     if args.renderer == 'pybullet':
         renderer = BulletBatchRenderer(object_set=args.urdf_ds_name, n_workers=args.n_rendering_workers)
     elif args.renderer == 'pytorch3d':
-        renderer = Pytorch3DSceneRenderer(ply_ds=args.urdf_ds_name, device=device, n_feature_channels=args.n_feature_channels, features_on=args.features_on)
+        renderer = Pytorch3DSceneRenderer(ply_ds=args.urdf_ds_name, 
+                                        device=device, 
+                                        n_feature_channels=args.n_feature_channels, 
+                                        features_on=args.features_on, 
+                                        features_dict=args.features_dict)
     else:
         raise NotImplementedError
     return renderer    
@@ -364,6 +368,7 @@ def train_pose(args):
             return run_eval(eval_bundle, epoch=epoch)
 
         train_epoch()
+        renderer.save_features_dict(verbose=0) # Save the updated features
         if epoch % args.val_epoch_interval == 0:
             validation()
 

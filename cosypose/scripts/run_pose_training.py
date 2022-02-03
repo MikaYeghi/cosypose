@@ -169,8 +169,8 @@ def make_cfg(args):
             # cfg.train_ds_names = [('tless.debug.dataset', 16)]
             # cfg.val_ds_names = [('tless.debug.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 500
-            cfg.lr_epoch_decay = 100
+            cfg.n_epochs = 700
+            cfg.lr_epoch_decay = 500
             # cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
             cfg.batch_size = 4
@@ -181,8 +181,9 @@ def make_cfg(args):
             cfg.n_rendering_workers = 8
             cfg.TCO_input_generator = 'gt+noise'
             cfg.renderer = 'pytorch3d'
-            cfg.features_on = False
+            cfg.features_on = True
             cfg.n_feature_channels = 64
+            cfg.features_dict = "object-features-75153531737675313845"
             # cfg.n_test_frames = 10
 
         else:

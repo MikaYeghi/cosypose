@@ -21,19 +21,23 @@ from pytorch3d.renderer.blending import BlendParams
 
 import torch
 import numpy as np
+import os
 from cosypose.features.feature_loader import FeatureLoader
 from cosypose.rendering.feature_shader import FeatureShader
+from tqdm import tqdm
 
 import pdb
 from pprint import pprint
 import time
 
-class Pytorch3DSceneRenderer:
+class Pytorch3DSceneRenderer(torch.nn.Module):
     def __init__(self,
                 ply_ds='ycbv',
                 device='cpu',
                 n_feature_channels=64,
-                features_on=False):
+                features_on=False,
+                features_dict=None):
+        super(Pytorch3DSceneRenderer, self).__init__()
         self.ply_ds = make_ply_dataset(ply_ds)
         self.opencv_to_pytorch3d = torch.tensor([[-1, 0, 0], [0, -1, 0], [0, 0, 1]], dtype=torch.float, device=device) # conversion matrix from opencv to pytorch3d
         # Connect to the device
@@ -45,19 +49,19 @@ class Pytorch3DSceneRenderer:
             self.device = torch.device("cpu")
             print("Using CPU for rendering")
 
+        # Load the dataset of CAD models
+        self.objects = self.load_dataset()
+
         # Load the feature loader
         self.features_on = features_on
         if features_on:
-            self.feature_loader = FeatureLoader(number_of_channels=n_feature_channels) # [MIKAEL] loads features for CAD models
+            self.feature_loader = FeatureLoader(number_of_channels=n_feature_channels, features_dict=features_dict) # loads features for CAD models
             self.n_feature_channels = n_feature_channels
         else:
             self.n_feature_channels = 3
 
     def render(self, obj_infos, TCO, K, resolution=(240, 320)):
         TCO = torch.as_tensor(TCO).detach()
-        # TOC = invert_T(TCO).cpu().numpy()
-        # TOC = TCO.detach().cpu().numpy()
-        # K = torch.as_tensor(K).cpu().numpy()
         K = torch.as_tensor(K)
         bsz = len(TCO)
         assert TCO.shape == (bsz, 4, 4)
@@ -73,11 +77,10 @@ class Pytorch3DSceneRenderer:
             cam_info = dict(
                 resolution=resolution,
                 K=K[n],
-                # TWC=TOC[n],
                 TWC=TCO[n],
             )
 
-            object_mesh = self.load_object(obj_info) # load the object mesh
+            object_mesh = self.load_object(obj_info, device=self.device) # load the object mesh
             renderer = self.setup_scene(cam_info) # setup the scene
             image = self.shot(object_mesh, renderer, resolution) # render the image
 
@@ -87,17 +90,11 @@ class Pytorch3DSceneRenderer:
         rendered_images = rendered_images.permute(0, 3, 1, 2)
         return rendered_images
 
-
-    def load_object(self, obj_info):
+    def load_object(self, obj_info, device='cpu'):
         label = obj_info['name']
-        obj_path, scale = self.ply_ds.get_ply_path_by_label(label)
-        verts, faces = load_ply(obj_path)
-
-        # Scale the object as in the original paper
-        # verts = torch.tensor([[x[0] * scale, x[1] * scale, x[2] * scale] for x in verts], dtype=verts.dtype)
-        verts.to(self.device)
-        faces.to(self.device)
-        verts = verts * scale # scale vertices
+        verts, faces = self.objects[label]
+        verts.to(device)
+        faces.to(device)
 
         # Generate the mesh
         if self.features_on:
@@ -105,11 +102,32 @@ class Pytorch3DSceneRenderer:
         else:
             colour = 1.35
             verts_features=torch.tensor([[colour, colour, colour] for _ in range(len(verts))])
-        verts_features = torch.unsqueeze(verts_features, 0).to(self.device)
+        verts_features = torch.unsqueeze(verts_features, 0).to(device)
         textures = TexturesVertex(verts_features=verts_features)
-        mesh = Meshes(verts=[verts], faces=[faces], textures=textures).to(self.device)
+        mesh = Meshes(verts=[verts], faces=[faces], textures=textures).to(device)
         
         return mesh
+
+    def load_dataset(self):
+        """
+        This function loads all .ply files from the ply dataset path into a dictionary.
+        """
+        assert self.ply_ds is not None
+        obj_ds = dict()
+
+        print("Loading objects into memory...")
+        for obj_ in tqdm(self.ply_ds):
+            label = obj_.label
+            obj_path, scale = self.ply_ds.get_ply_path_by_label(label)
+            verts, faces = load_ply(obj_path)
+
+            # Scale the object as in the original paper
+            verts = verts * scale # scale vertices
+
+            # Save in the dictionary
+            obj_ds[label] = (verts, faces)
+
+        return obj_ds
 
     def setup_scene(self, cam_info):
         K = cam_info['K']
@@ -179,7 +197,7 @@ class Pytorch3DSceneRenderer:
 
     def shot(self, object_mesh, renderer, resolution):
         """
-        Returns an image of shape (h, w, 3) and type numpy array.
+        Returns an image of shape (H, W, C).
         """
         image = renderer(object_mesh)
         image = image[0, ..., :self.n_feature_channels]
@@ -193,9 +211,11 @@ class Pytorch3DSceneRenderer:
         Use the lines below to plot rendered images (only if using features_on=False).
         """
         # from matplotlib import pyplot as plt
-        # plt.imshow(image[0].cpu().numpy())
+        # plt.imshow(image[0][0].cpu().numpy())
         # plt.show()
 
         return image
 
-
+    def save_features_dict(self, verbose=1):
+        assert self.features_on
+        self.feature_loader.save_features(verbose=verbose)

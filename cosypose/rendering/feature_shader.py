@@ -221,13 +221,13 @@ class FeatureShader(nn.Module):
         texels = meshes.sample_textures(fragments)
         # lights = kwargs.get("lights", self.lights)
         # materials = kwargs.get("materials", self.materials)
-        blend_params = kwargs.get("blend_params", self.blend_params)
-        colors = multichannel_shading(
-            meshes=meshes,
-            fragments=fragments,
-            texels=texels,
-            cameras=cameras
-        )
+        # blend_params = kwargs.get("blend_params", self.blend_params)
+        # colors = multichannel_shading(
+        #     meshes=meshes,
+        #     fragments=fragments,
+        #     texels=texels,
+        #     cameras=cameras
+        # )
         # znear = kwargs.get("znear", getattr(cameras, "znear", 1.0))
         # zfar = kwargs.get("zfar", getattr(cameras, "zfar", 100.0))
         # images = softmax_multichannel_blend(

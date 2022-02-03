@@ -158,6 +158,8 @@ class PosePredictor(nn.Module):
             # print("RENDER BELOW")
             if self.features_on:
                 images_crop = self.embednet(images_crop)
+                K_crop = get_K_crop_resize(K=K.clone(), boxes=boxes_crop,
+                                   orig_size=images.shape[-2:], crop_resize=images_crop.shape[-2:])
 
             renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
                                            TCO=TCO_input,
