@@ -3,7 +3,7 @@ from cosypose.datasets.datasets_cfg import make_ply_dataset
 from cosypose.lib3d.transform_ops import invert_T
 
 from pytorch3d.io import load_ply
-from pytorch3d.structures import Meshes
+from pytorch3d.structures import Meshes, join_meshes_as_batch
 from pytorch3d.renderer import (
     PerspectiveCameras,
     DirectionalLights,
@@ -69,25 +69,29 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
 
         rendered_images = torch.empty((1, resolution[0], resolution[1], self.n_feature_channels)).to(self.device)
 
-        for n in np.arange(bsz):
-            obj_info = dict(
-                name=obj_infos[n]['name'],
-                TWO=np.eye(4)
-            )
-            cam_info = dict(
-                resolution=resolution,
-                K=K[n],
-                TWC=TCO[n],
-            )
+        object_meshes = self.load_objects_batch(obj_infos, bsz, device=self.device)
+        renderer = self.setup_batch_scenes(resolution, K, TCO, bsz, device=self.device)
+        images = self.shot_batch(object_meshes, renderer)
 
-            object_mesh = self.load_object(obj_info, device=self.device) # load the object mesh
-            renderer = self.setup_scene(cam_info) # setup the scene
-            image = self.shot(object_mesh, renderer, resolution) # render the image
+        # for n in np.arange(bsz):
+        #     obj_info = dict(
+        #         name=obj_infos[n]['name'],
+        #         TWO=np.eye(4)
+        #     )
+        #     cam_info = dict(
+        #         resolution=resolution,
+        #         K=K[n],
+        #         TWC=TCO[n],
+        #     )
 
-            rendered_images = torch.cat((rendered_images, image), 0)
+        #     object_mesh = self.load_object(obj_info, device=self.device) # load the object mesh
+        #     renderer = self.setup_scene(cam_info) # setup the scene
+        #     image = self.shot(object_mesh, renderer, resolution) # render the image
 
-        rendered_images = rendered_images[1:] # takes care of the first empty tensor
-        rendered_images = rendered_images.permute(0, 3, 1, 2)
+        #     rendered_images = torch.cat((rendered_images, image), 0)
+
+        # rendered_images = rendered_images[1:] # takes care of the first empty tensor
+        rendered_images = images.permute(0, 3, 1, 2)
         return rendered_images
 
     def load_object(self, obj_info, device='cpu'):
@@ -106,6 +110,18 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         textures = TexturesVertex(verts_features=verts_features)
         mesh = Meshes(verts=[verts], faces=[faces], textures=textures).to(device)
         
+        return mesh
+
+    def load_objects_batch(self, obj_infos, bsz, device='cpu'):
+        meshes_list = list()
+        for n in np.arange(bsz):
+            obj_info = dict(
+                name=obj_infos[n]['name'],
+                TWO=np.eye(4)
+            )
+            object_mesh = self.load_object(obj_info, device=self.device)
+            meshes_list.append(object_mesh)
+        mesh = join_meshes_as_batch(meshes_list).to(device)
         return mesh
 
     def load_dataset(self):
@@ -194,6 +210,85 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
 
         return renderer
 
+    def setup_batch_scenes(self, resolution, K, TWC, bsz, device='cpu'):
+        R_list = list()     # List of rotation matrices
+        T_list = list()     # List of translation vectors
+        FL_list = list()    # List of focal lengths
+        PP_list = list()    # List of principal points
+
+        for n in np.arange(bsz):
+            K_ = K[n]
+            TWC_ = TWC[n]
+
+            # Extract camera intrinsic parameters
+            fx = K_[0][0]
+            fy = K_[1][1]
+            sx = K_[0][2]
+            sy = K_[1][2]
+            focal_length = torch.tensor([fx, fy]).to(self.device)
+            principal_point = torch.tensor([sx, sy]).to(self.device)
+
+            # Extract rotation and translation matrices
+            R = TWC_[:3, :3].to(self.device)
+            T = TWC_[:3, -1].to(self.device)
+
+            # Convert from opencv to pytorch3d coordinates
+            R = R.T
+            R = torch.matmul(R, self.opencv_to_pytorch3d)
+            T[0] = -1 * T[0]
+            T[1] = -1 * T[1]
+
+            # Append to the lists of batches
+            R_list.append(R.unsqueeze(0))
+            T_list.append(T.unsqueeze(0))
+            FL_list.append(focal_length.unsqueeze(0))
+            PP_list.append(principal_point.unsqueeze(0))
+        
+        R = torch.cat(R_list).to(device)
+        T = torch.cat(T_list).to(device)
+        FL = torch.cat(FL_list).to(device)
+        PP = torch.cat(PP_list).to(device)
+
+        # Set up camera, object and world
+        cameras = PerspectiveCameras(device=self.device, 
+                                R=R, 
+                                T=T, 
+                                focal_length=FL, 
+                                principal_point=PP,
+                                in_ndc=False,
+                                image_size=[resolution])
+        
+        raster_settings = RasterizationSettings(image_size=resolution,
+                                                blur_radius=0.0, 
+                                                faces_per_pixel=1,
+                                                max_faces_per_bin=150000,
+                                            )
+
+        if self.features_on:
+            shader = FeatureShader(
+                device=self.device, 
+                cameras=cameras,
+            )
+        else:
+            lights = DirectionalLights(device=self.device, direction=((0,0,1),)).to(self.device)
+            shader = SoftPhongShader(
+                device=self.device, 
+                cameras=cameras,
+                lights=lights,
+                blend_params=BlendParams(background_color=(0.0, 0.0, 0.0))
+            )
+        
+        rasterizer = MeshRasterizer(
+                cameras=cameras, 
+                raster_settings=raster_settings
+            )
+
+        renderer = MeshRenderer(
+            rasterizer=rasterizer,
+            shader=shader
+        ).to(self.device)
+
+        return renderer
 
     def shot(self, object_mesh, renderer, resolution):
         """
@@ -215,6 +310,20 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         # plt.show()
 
         return image
+
+    def shot_batch(self, object_meshes, renderer):
+        """
+        Returns a batch of images.
+        """
+        images = renderer(object_meshes)
+
+        if self.features_on:
+            images = images.permute(3, 0, 1, 2, 4)
+            images = images[0]
+        else:
+            images = images[..., :3] # pick RGB channels
+
+        return images
 
     def save_features_dict(self, verbose=1):
         assert self.features_on
