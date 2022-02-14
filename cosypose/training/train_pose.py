@@ -368,7 +368,8 @@ def train_pose(args):
             return run_eval(eval_bundle, epoch=epoch)
 
         train_epoch()
-        renderer.save_features_dict(verbose=0) # Save the updated features
+        if args.features_on:
+            renderer.save_features_dict(verbose=0) # Save the updated features
         if epoch % args.val_epoch_interval == 0:
             validation()
 

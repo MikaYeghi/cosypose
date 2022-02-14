@@ -317,11 +317,19 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         """
         images = renderer(object_meshes)
 
-        if self.features_on:
+        if self.features_on: # features case
             images = images.permute(3, 0, 1, 2, 4)
             images = images[0]
-        else:
+        else: # RGB case
             images = images[..., :3] # pick RGB channels
+
+            """
+            Use the lines below to plot rendered example images.
+            """
+            # image = images[0]
+            # from matplotlib import pyplot as plt
+            # plt.imshow(image.cpu().detach().numpy())
+            # plt.show()
 
         return images
 
