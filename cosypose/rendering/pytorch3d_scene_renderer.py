@@ -326,10 +326,10 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
             """
             Use the lines below to plot rendered example images.
             """
-            # image = images[0]
-            # from matplotlib import pyplot as plt
-            # plt.imshow(image.cpu().detach().numpy())
-            # plt.show()
+            # for image in images:
+            #     from matplotlib import pyplot as plt
+            #     plt.imshow(image.cpu().detach().numpy())
+            #     plt.show()
 
         return images
 

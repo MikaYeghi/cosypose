@@ -239,8 +239,9 @@ def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tle
         if run_id is None:
             return
         run_dir = EXP_DIR / run_id
-        cfg = yaml.load((run_dir / 'config.yaml').read_text(), Loader=yaml.FullLoader)
+        cfg = yaml.load((run_dir / 'config.yaml').read_text(), Loader=yaml.UnsafeLoader)
         cfg = check_update_config(cfg)
+        cfg.features_on = False # Used for testing only
         if cfg.train_refiner:
             model = create_model_refiner(cfg, renderer=renderer, mesh_db=mesh_db_batched)
             ckpt = torch.load(run_dir / 'checkpoint.pth.tar')
@@ -297,9 +298,9 @@ def main():
     object_set = 'tless'
     if 'tless' in args.config:
         object_set = 'tless'
-        coarse_run_id = 'tless-coarse--10219'
-        # refiner_run_id = 'tless-refiner--585928'
+        # coarse_run_id = 'tless-coarse--10219'
         refiner_run_id = 'tless-refiner--585928'
+        coarse_run_id = 'tless-refiner-custom--191535'
         n_coarse_iterations = 1
         n_refiner_iterations = 4
         use_gt_data = False          # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose

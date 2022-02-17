@@ -166,24 +166,29 @@ def make_cfg(args):
             cfg.TCO_input_generator = 'gt+noise'
             cfg.rgb_augmentation = False
         elif args.config == 'tless-refiner-custom':
-            cfg.train_ds_names = [('tless.debug.single', 6*10)]
-            cfg.val_ds_names = [('tless.debug.single', 1)]
+            cfg.train_ds_names = [('tless.debug.dataset', 6*5)]
+            cfg.val_ds_names = [('tless.debug.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 700
+            cfg.n_epochs = 200
             cfg.lr_epoch_decay = 500
-            # cfg.n_epochs_warmup = 50
+            cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
-            cfg.batch_size = 6
+            cfg.batch_size = 2
             # cfg.epoch_size = 10 * cfg.batch_size
             cfg.background_augmentation = False 
             cfg.rgb_augmentation = False
             cfg.n_dataloader_workers = 8 
             cfg.n_rendering_workers = 8
-            cfg.TCO_input_generator = 'gt+noise'
+            # cfg.TCO_input_generator = 'gt+noise'
+            cfg.TCO_input_generator = 'fixed'
             cfg.renderer = 'pytorch3d'
             cfg.features_on = False
             cfg.n_feature_channels = 64
             cfg.features_dict = "object-features-75153531737675313845"
+            # cfg.features_dict = None
+            # cfg.resume_run_id = 'tless-refiner-custom--953637'
+            cfg.resume_run_id = "tless-refiner-custom--191535"
+            # cfg.run_id_pretrain = "tless-refiner-custom--191535"
             # cfg.n_test_frames = 10
 
         else:

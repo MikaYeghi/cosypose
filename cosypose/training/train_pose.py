@@ -206,7 +206,8 @@ def train_pose(args):
     if args.resume_run_id:
         resume_dir = EXP_DIR / args.resume_run_id
         resume_args = yaml.load((resume_dir / 'config.yaml').read_text(), Loader=yaml.UnsafeLoader) # [MIKAEL] added unsafe loader
-        keep_fields = set(['resume_run_id', 'epoch_size', ])
+        # keep_fields = set(['resume_run_id', 'epoch_size', ])
+        keep_fields = set(['resume_run_id', 'n_epochs', ])
         vars(args).update({k: v for k, v in vars(resume_args).items() if k not in keep_fields})
 
     args.train_refiner = args.TCO_input_generator == 'gt+noise'
@@ -264,15 +265,12 @@ def train_pose(args):
     ds_iter_val = MultiEpochDataLoader(ds_iter_val)
 
     # Make model
-    # args.renderer = 'pybullet'
     renderer = make_renderer(args, device)
-    # args.renderer = 'pytorch3d'
-    # renderer_ = make_renderer(args, device)
     object_ds = make_object_dataset(args.object_ds_name)
     mesh_db = MeshDataBase.from_object_ds(object_ds).batched(n_sym=args.n_symmetries_batch).cuda().float()
 
     model = create_model_pose(cfg=args, renderer=renderer, mesh_db=mesh_db).cuda()
-
+    
     eval_bundle = make_eval_bundle(args, model)
     if args.resume_run_id:
         resume_dir = EXP_DIR / args.resume_run_id

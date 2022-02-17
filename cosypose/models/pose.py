@@ -144,7 +144,7 @@ class PosePredictor(nn.Module):
             images_crop, K_crop, boxes_rend, boxes_crop = self.crop_inputs(images, K, TCO_input, labels)
             # K_new = torch.matmul(K_crop[0], torch.inverse(K[0]))
             # image = images[0]
-            # for image in images:
+            # for image in images_crop:
             #     image = image.permute(1,2,0)
             #     plt.imshow(image.cpu().numpy())
             #     plt.show()
