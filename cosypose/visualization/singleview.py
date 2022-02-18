@@ -4,6 +4,7 @@ from .plotter import Plotter
 
 from cosypose.datasets.wrappers.augmentation_wrapper import AugmentationWrapper
 from cosypose.datasets.augmentations import CropResizeToAspectAugmentation
+import pdb
 
 
 def filter_predictions(preds, scene_id, view_id=None, th=None):

@@ -48,6 +48,9 @@ def make_scene_dataset(ds_name, n_frames=None):
     elif ds_name == 'tless.debug.single':
         ds = _make_tless_dataset('tless_debug_single')
 
+    elif ds_name == 'tless.seen.dataset':
+        ds = _make_tless_dataset('tless_seen')
+
     # YCBV
     elif ds_name == 'ycbv.train.real':
         ds_dir = BOP_DS_DIR / 'ycbv'

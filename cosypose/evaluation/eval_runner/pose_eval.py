@@ -65,7 +65,7 @@ class PoseEvaluation:
             meter.reset()
         obj_predictions = obj_predictions.to(device)
         obj_predictions.infos['error'] = np.nan
-        for obj_data_gt in tqdm(self.dataloader):
+        for obj_data_gt in self.dataloader:
             for k, meter in self.meters.items():
                 meter.add(obj_predictions, obj_data_gt.to(device), predicted_gt_coarse_objects=predicted_gt_coarse_objects, use_gt_data=use_gt_data, record_errors=False)
                 

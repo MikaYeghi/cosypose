@@ -47,6 +47,8 @@ logger = get_logger(__name__)
 torch.multiprocessing.set_sharing_strategy('file_system')
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+
+from cosypose.rendering.make_renderer import make_renderer
 import pdb
 import os
 import json, pickle
@@ -157,6 +159,10 @@ def get_pose_meters(scene_ds):
         targets_filename = 'all_target_tless.json'
         n_top = 1
         visib_gt_min = 0.1
+    elif ds_name == 'tless.seen.dataset':
+        targets_filename = 'all_target_tless.json'
+        n_top = 1
+        visib_gt_min = 0.1
     elif 'ycbv' in ds_name:
         compute_add = True
         visib_gt_min = -1
@@ -224,7 +230,7 @@ def get_pose_meters(scene_ds):
     return meters
 
 
-def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tless', scene_ds=None, use_gt_data=False, coarse_refiner_batch_size=64):
+def load_models(coarse_run_id, arguments, refiner_run_id=None, n_workers=8, object_set='tless', scene_ds=None, use_gt_data=False, coarse_refiner_batch_size=64):
     if object_set == 'tless':
         object_ds_name, urdf_ds_name = 'tless.bop', 'tless.cad'
     else:
@@ -232,7 +238,26 @@ def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tle
 
     object_ds = make_object_dataset(object_ds_name)
     mesh_db = MeshDataBase.from_object_ds(object_ds)
-    renderer = BulletBatchRenderer(object_set=urdf_ds_name, n_workers=n_workers)
+    # renderer = BulletBatchRenderer(object_set=urdf_ds_name, n_workers=n_workers)
+    
+    """
+    The lines below set up args for picking the renderer properly.
+    """
+    device = f"cuda:{torch.cuda.current_device()}"
+    arguments.urdf_ds_name = urdf_ds_name
+    arguments.n_rendering_workers = n_workers
+
+    if arguments.renderer == 'pybullet':
+        coarse_renderer = make_renderer(arguments, device)
+        refiner_renderer = coarse_renderer
+    elif arguments.renderer == 'pytorch3d':
+        arguments.features_on = arguments.coarse_features_on
+        coarse_renderer = make_renderer(arguments, device)
+        arguments.features_on = arguments.refiner_features_on
+        refiner_renderer = make_renderer(arguments, device)
+        delattr(arguments, 'features_on')
+    else:
+        raise NotImplementedError
     mesh_db_batched = mesh_db.batched().cuda()
 
     def load_model(run_id):
@@ -241,12 +266,11 @@ def load_models(coarse_run_id, refiner_run_id=None, n_workers=8, object_set='tle
         run_dir = EXP_DIR / run_id
         cfg = yaml.load((run_dir / 'config.yaml').read_text(), Loader=yaml.UnsafeLoader)
         cfg = check_update_config(cfg)
-        cfg.features_on = False # Used for testing only
         if cfg.train_refiner:
-            model = create_model_refiner(cfg, renderer=renderer, mesh_db=mesh_db_batched)
+            model = create_model_refiner(cfg, renderer=coarse_renderer, mesh_db=mesh_db_batched)
             ckpt = torch.load(run_dir / 'checkpoint.pth.tar')
         else:
-            model = create_model_coarse(cfg, renderer=renderer, mesh_db=mesh_db_batched)
+            model = create_model_coarse(cfg, renderer=refiner_renderer, mesh_db=mesh_db_batched)
             ckpt = torch.load(run_dir / 'checkpoint.pth.tar')
         ckpt = ckpt['state_dict']
         model.load_state_dict(ckpt)
@@ -270,6 +294,7 @@ def main():
         if 'cosypose' in logger.name:
             logger.setLevel(logging.DEBUG)
 
+    logger = logging.getLogger(__name__) # [MIKAEL] added this line, since the logger wasn't working for some reason
     logger.info("Starting ...")
     init_distributed_mode()
 
@@ -317,6 +342,16 @@ def main():
     if args.config == 'tless-siso':
         ds_name = 'tless.primesense.test'
         assert n_views == 1
+    elif args.config == 'tless-custom':
+        ds_name = 'tless.primesense.test'
+        # ds_name = 'tless.seen.dataset'
+        args.coarse_features_on = False
+        args.refiner_features_on = False
+        args.renderer = 'pybullet'
+        args.n_feature_channels = 64
+        args.features_dict = "object-features-75153531737675313845"
+        n_coarse_iterations = 1
+        n_refiner_iterations = 0
     elif args.config == 'tless-vivo':
         ds_name = 'tless.primesense.test.bop19'
     elif args.config == 'ycbv':
@@ -352,8 +387,9 @@ def main():
         scene_ds.frame_index = scene_ds.frame_index[mask].reset_index(drop=True)[:n_frames]
 
     # Predictions
-    predictor, mesh_db = load_models(coarse_run_id, 
-                                    refiner_run_id, 
+    predictor, mesh_db = load_models(coarse_run_id=coarse_run_id, 
+                                    refiner_run_id=refiner_run_id, 
+                                    arguments=args,
                                     n_workers=n_plotters, 
                                     object_set=object_set, 
                                     scene_ds=scene_ds, 
@@ -456,16 +492,13 @@ def main():
             logger.info(f"Evaluation : {preds_k} (N={len(preds)})")
             if len(preds) == 0:
                 preds = eval_runner.make_empty_predictions()
-            # pdb.set_trace()
+
             eval_metrics[preds_k], eval_dfs[preds_k] = eval_runner.evaluate(preds, predicted_gt_coarse_objects=predicted_gt_coarse_objects, use_gt_data=use_gt_data)
             preds.cpu()
         else:
             logger.info(f"Skipped: {preds_k} (N={len(preds)})")
     
     all_predictions = gather_predictions(all_predictions)
-
-    # Print information about the data collected
-    # print(predicted_gt_coarse_objects)
 
     metrics_to_print = dict()
     if 'ycbv' in ds_name:
@@ -511,7 +544,7 @@ def main():
         logger.info(summary_txt)
         logger.info(f"{'-'*80}")
 
-        torch.save(results, save_dir / 'results.pth.tar')
+        torch.save(results, save_dir / 'results.pth.tar', _use_new_zipfile_serialization=False)
         (save_dir / 'summary.txt').write_text(summary_txt)
         logger.info(f"Saved: {save_dir}")
     

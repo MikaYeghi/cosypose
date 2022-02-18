@@ -87,7 +87,6 @@ class MultiviewPredictionRunner:
                         multi_initializer=None,
                         n_multi_initializations=27,
                         use_multiple_initializations=False):
-        
         assert detections is not None
         if detections is not None:
             mask = (detections.infos['score'] >= sv_score_th)

@@ -54,7 +54,6 @@ class BulletBatchRenderer:
 
         # NOTE: Could be faster with pytorch 3.8's sharedmemory
         for n in np.arange(bsz):
-            # print(obj_infos[n])
             obj_info = dict(
                 name=obj_infos[n]['name'],
                 TWO=np.eye(4)

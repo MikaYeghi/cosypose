@@ -61,7 +61,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
             self.n_feature_channels = 3
 
     def render(self, obj_infos, TCO, K, resolution=(240, 320)):
-        TCO = torch.as_tensor(TCO).detach()
+        TCO = torch.as_tensor(TCO).clone().detach()
         K = torch.as_tensor(K)
         bsz = len(TCO)
         assert TCO.shape == (bsz, 4, 4)
@@ -73,24 +73,6 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         renderer = self.setup_batch_scenes(resolution, K, TCO, bsz, device=self.device)
         images = self.shot_batch(object_meshes, renderer)
 
-        # for n in np.arange(bsz):
-        #     obj_info = dict(
-        #         name=obj_infos[n]['name'],
-        #         TWO=np.eye(4)
-        #     )
-        #     cam_info = dict(
-        #         resolution=resolution,
-        #         K=K[n],
-        #         TWC=TCO[n],
-        #     )
-
-        #     object_mesh = self.load_object(obj_info, device=self.device) # load the object mesh
-        #     renderer = self.setup_scene(cam_info) # setup the scene
-        #     image = self.shot(object_mesh, renderer, resolution) # render the image
-
-        #     rendered_images = torch.cat((rendered_images, image), 0)
-
-        # rendered_images = rendered_images[1:] # takes care of the first empty tensor
         rendered_images = images.permute(0, 3, 1, 2)
         return rendered_images
 
@@ -104,7 +86,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         if self.features_on:
             verts_features = self.feature_loader.get_features()[label]
         else:
-            colour = 1.35
+            colour = 1.0
             verts_features=torch.tensor([[colour, colour, colour] for _ in range(len(verts))])
         verts_features = torch.unsqueeze(verts_features, 0).to(device)
         textures = TexturesVertex(verts_features=verts_features)
@@ -190,7 +172,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
                 cameras=cameras,
             )
         else:
-            lights = DirectionalLights(device=self.device, direction=((0,0,1),)).to(self.device)
+            lights = DirectionalLights(device=self.device, direction=((0,0,-1),)).to(self.device)
             shader = SoftPhongShader(
                 device=self.device, 
                 cameras=cameras,
@@ -270,7 +252,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
                 cameras=cameras,
             )
         else:
-            lights = DirectionalLights(device=self.device, direction=((0,0,1),)).to(self.device)
+            lights = DirectionalLights(device=self.device, direction=((0,0,-1),)).to(self.device)
             shader = SoftPhongShader(
                 device=self.device, 
                 cameras=cameras,

@@ -76,19 +76,6 @@ class BOPDataset:
         self.frame_index = pd.read_feather(save_file_index).reset_index(drop=True)
         self.annotations = pickle.loads(save_file_annotations.read_bytes())
 
-        """
-        [MIKAEL] Use the lines below only for the tless debug dataset!!!
-        """
-        # self.frame_index = pd.DataFrame({'scene_id': 1, 'cam_id': 'cam', 'view_id': 0, 'cam_name': 'cam'}, index=[0])
-        # self.annotations = {'000001': {'scene_camera': {'0': {'cam_K': [1075.65091572, 0.0, 224.06888344, 0.0, 1073.90347929, 167.72159802, 0.0, 0.0, 1.0], 'depth_scale': 0.1, 'elev': 85, 'mode': 0}}, 'scene_gt_info': {'0': [{'bbox_obj': [169, 167, 60, 60], 'bbox_visib': [169, 167, 60, 60], 'px_count_all': 2960, 'px_count_valid': 2948, 'px_count_visib': 2944, 'visib_fract': 0.9945945945945946}]}, 'scene_gt': {'0': [{'cam_R_m2c': [0.99968707, 0.02496792, -0.00160221, 0.02462464, -0.99322556, -0.11356043, -0.00442673, 0.11348608, -0.99352966], 'cam_t_m2c': [-14.09421585, 19.09785011, 634.54525338], 'obj_id': 1}]}}}
-        # self.frame_index = pd.DataFrame({"scene_id": 1, "cam_id": "cam", "view_id": 302, "cam_name": "cam"}, index=[302])
-        # self.annotations = {"000001": 
-        #             {"scene_camera": {"302": {"cam_K": [1075.65091572, 0.0, 375.06888344, 0.0, 1073.90347929, 307.72159802, 0.0, 0.0, 1.0], "depth_scale": 0.1, "elev": 35, "mode": 0}}, 
-        #             "scene_gt_info": {"302": [{"bbox_obj": [205, 211, 60, 88], "bbox_visib": [205, 211, 60, 80], "px_count_all": 4091, "px_count_valid": 4063, "px_count_visib": 3596, "visib_fract": 0.8790026888291371}]}, 
-        #             "scene_gt": {"302": [{"cam_R_m2c": [-0.01504789, 0.99970868, 0.0188826, 0.5381807, 0.02401423, -0.842487, -0.8426955, -0.0025155, -0.538385], "cam_t_m2c": [-100.65784856, -35.77377257, 781.89593234], "obj_id": 2}]}}
-        # }
-
-
         models_infos = json.loads((ds_dir / 'models' / 'models_info.json').read_text())
         self.all_labels = [f'obj_{int(obj_id):06d}' for obj_id in models_infos.keys()]
         self.load_depth = load_depth

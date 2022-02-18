@@ -25,7 +25,7 @@ from matplotlib import pyplot as plt
 class PosePredictor(nn.Module):
     def __init__(self, backbone, renderer,
                  mesh_db, render_size=(240, 320),
-                 pose_dim=9, features_on=False):
+                 pose_dim=9):
         super().__init__()
 
         self.backbone = backbone
@@ -33,7 +33,10 @@ class PosePredictor(nn.Module):
         self.mesh_db = mesh_db
         self.render_size = render_size
         self.pose_dim = pose_dim
-        self.features_on = features_on # [MIKAEL] if true, then uses features instead of RGB
+        try:
+            self.features_on = self.renderer.features_on # [MIKAEL] if true, then uses features instead of RGB
+        except Exception:
+            self.features_on = False # set to false if the renderer has no features_no (means that it's not pytorch3d)
 
         n_features = backbone.n_features
 
@@ -45,7 +48,7 @@ class PosePredictor(nn.Module):
         self.tmp_debug = dict()
 
         # Initialize the Embeddings Network
-        if features_on:
+        if self.features_on:
             self.embednet = embednet(backbone='resnet34', pretrained=True).cuda()
 
     def enable_debug(self):

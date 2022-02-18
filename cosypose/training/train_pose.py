@@ -28,6 +28,7 @@ from cosypose.datasets.wrappers.multiview_wrapper import MultiViewWrapper
 from cosypose.scripts.run_cosypose_eval import (
     load_pix2pose_results, load_posecnn_results, get_pose_meters)
 
+from cosypose.rendering.make_renderer import make_renderer
 from cosypose.rendering.bullet_batch_renderer import BulletBatchRenderer
 from cosypose.rendering.pytorch3d_scene_renderer import Pytorch3DSceneRenderer
 from cosypose.lib3d.rigid_mesh_database import MeshDataBase
@@ -186,19 +187,7 @@ def run_eval(eval_bundle, epoch):
             torch.save(results, save_dir / f'epoch={epoch}.pth.tar')
             errors[ds_name] = results['summary']
     return errors
-
-def make_renderer(args, device):
-    if args.renderer == 'pybullet':
-        renderer = BulletBatchRenderer(object_set=args.urdf_ds_name, n_workers=args.n_rendering_workers)
-    elif args.renderer == 'pytorch3d':
-        renderer = Pytorch3DSceneRenderer(ply_ds=args.urdf_ds_name, 
-                                        device=device, 
-                                        n_feature_channels=args.n_feature_channels, 
-                                        features_on=args.features_on, 
-                                        features_dict=args.features_dict)
-    else:
-        raise NotImplementedError
-    return renderer    
+  
 
 def train_pose(args):
     torch.set_num_threads(1)
