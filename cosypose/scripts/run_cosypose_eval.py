@@ -163,6 +163,10 @@ def get_pose_meters(scene_ds):
         targets_filename = 'all_target_tless.json'
         n_top = 1
         visib_gt_min = 0.1
+    elif ds_name == 'tless.unseen.dataset':
+        targets_filename = 'all_target_tless.json'
+        n_top = 1
+        visib_gt_min = 0.1
     elif 'ycbv' in ds_name:
         compute_add = True
         visib_gt_min = -1
@@ -323,9 +327,9 @@ def main():
     object_set = 'tless'
     if 'tless' in args.config:
         object_set = 'tless'
-        # coarse_run_id = 'tless-coarse--10219'
+        coarse_run_id = 'tless-coarse--10219'
         refiner_run_id = 'tless-refiner--585928'
-        coarse_run_id = 'tless-refiner-custom--306391'
+        # coarse_run_id = 'tless-refiner-custom--710070'
         n_coarse_iterations = 1
         n_refiner_iterations = 4
         use_gt_data = False          # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
@@ -343,13 +347,13 @@ def main():
         ds_name = 'tless.primesense.test'
         assert n_views == 1
     elif args.config == 'tless-custom':
-        ds_name = 'tless.primesense.test'
-        # ds_name = 'tless.seen.dataset'
-        args.coarse_features_on = True
+        # ds_name = 'tless.primesense.test'
+        ds_name = 'tless.unseen.dataset'
+        args.coarse_features_on = False
         args.refiner_features_on = False
-        args.renderer = 'pytorch3d'
+        args.renderer = 'pybullet'
         args.n_feature_channels = 64
-        args.features_dict = "object-features-69248217232199622024"
+        args.features_dict = "object-features-03123746984156305871"
         n_coarse_iterations = 1
         n_refiner_iterations = 0
     elif args.config == 'tless-vivo':
