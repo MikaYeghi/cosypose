@@ -252,11 +252,14 @@ def load_models(coarse_run_id, arguments, refiner_run_id=None, n_workers=8, obje
     arguments.n_rendering_workers = n_workers
 
     if arguments.renderer == 'pybullet':
+        logger.info("Building pybullet renderer...")
         coarse_renderer = make_renderer(arguments, device)
         refiner_renderer = coarse_renderer
     elif arguments.renderer == 'pytorch3d':
+        logger.info("Building the coarse renderer using Pytorch3D...")
         arguments.features_on = arguments.coarse_features_on
         coarse_renderer = make_renderer(arguments, device)
+        logger.info("Building the refiner renderer using Pytorch3D...")
         arguments.features_on = arguments.refiner_features_on
         refiner_renderer = make_renderer(arguments, device)
         delattr(arguments, 'features_on')
@@ -327,9 +330,10 @@ def main():
     object_set = 'tless'
     if 'tless' in args.config:
         object_set = 'tless'
-        coarse_run_id = 'tless-coarse--10219'
-        refiner_run_id = 'tless-refiner--585928'
-        # coarse_run_id = 'tless-refiner-custom--710070'
+        # coarse_run_id = 'tless-coarse--10219'
+        # refiner_run_id = 'tless-refiner--585928'
+        coarse_run_id = 'tless-refiner-custom--710070'
+        refiner_run_id = 'tless-refiner-custom--971331'
         n_coarse_iterations = 1
         n_refiner_iterations = 4
         use_gt_data = False          # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
@@ -349,13 +353,13 @@ def main():
     elif args.config == 'tless-custom':
         # ds_name = 'tless.primesense.test'
         ds_name = 'tless.unseen.dataset'
-        args.coarse_features_on = False
-        args.refiner_features_on = False
-        args.renderer = 'pybullet'
+        args.coarse_features_on = True
+        args.refiner_features_on = True
+        args.renderer = 'pytorch3d'
         args.n_feature_channels = 64
-        args.features_dict = "object-features-03123746984156305871"
+        args.features_dict = "object-features-object-features-03123746984156305871"
         n_coarse_iterations = 1
-        n_refiner_iterations = 0
+        n_refiner_iterations = 4
     elif args.config == 'tless-vivo':
         ds_name = 'tless.primesense.test.bop19'
     elif args.config == 'ycbv':

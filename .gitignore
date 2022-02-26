@@ -23,3 +23,4 @@ build/
 job-runner-*
 visualize_singleview_predictions.ipynb
 loading_pickle_data.py
+job-runner-config.yaml
