@@ -556,9 +556,9 @@ def main():
         (save_dir / 'summary.txt').write_text(summary_txt)
         logger.info(f"Saved: {save_dir}")
     
-    file_path = f"{save_dir}/multi_initializations_results.pkl"
-    with open(file_path, 'wb') as f:
-        pickle.dump(all_predictions, f, pickle.HIGHEST_PROTOCOL)
+    # file_path = f"{save_dir}/multi_initializations_results.pkl"
+    # with open(file_path, 'wb') as f:
+    #     pickle.dump(all_predictions, f, pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':

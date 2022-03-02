@@ -166,7 +166,6 @@ class CoarseRefinePosePredictor(torch.nn.Module):
                         predicted_gt_coarse_objects=None,
                         multi_initializer=None):
 
-        print("Start predicting...")
         preds = dict()
         if data_TCO_init is None:
             assert detections is not None
