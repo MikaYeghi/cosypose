@@ -258,11 +258,14 @@ def load_models(coarse_run_id, arguments, refiner_run_id=None, n_workers=8, obje
     elif arguments.renderer == 'pytorch3d':
         logger.info("Building the coarse renderer using Pytorch3D...")
         arguments.features_on = arguments.coarse_features_on
+        arguments.features_dict = arguments.coarse_features_dict
         coarse_renderer = make_renderer(arguments, device)
         logger.info("Building the refiner renderer using Pytorch3D...")
         arguments.features_on = arguments.refiner_features_on
+        arguments.features_dict = arguments.refiner_features_dict
         refiner_renderer = make_renderer(arguments, device)
         delattr(arguments, 'features_on')
+        delattr(arguments, 'features_dict')
     else:
         raise NotImplementedError
     mesh_db_batched = mesh_db.batched().cuda()
@@ -357,7 +360,8 @@ def main():
         args.refiner_features_on = True
         args.renderer = 'pytorch3d'
         args.n_feature_channels = 64
-        args.features_dict = "object-features-object-features-03123746984156305871"
+        args.coarse_features_dict = "object-features-object-features-03123746984156305871"
+        args.refiner_features_dict = "object-features-object-features-03123746984156305871"
         n_coarse_iterations = 1
         n_refiner_iterations = 4
     elif args.config == 'tless-vivo':

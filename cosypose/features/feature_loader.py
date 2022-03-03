@@ -70,10 +70,11 @@ class FeatureLoader(nn.Module):
     def save_features(self, verbose=1):
         if self.features_dict is not None:
             code = self.features_dict
+            save_dir = FEATURES_DIR / f'{code}.pkl'
         else:
             code = get_random_code(self.code_length)
             self.features_dict = code
-        save_dir = FEATURES_DIR / f'object-features-{code}.pkl'
+            save_dir = FEATURES_DIR / f'object-features-{code}.pkl'
         with open(str(save_dir), 'wb') as f:
             pickle.dump(self.get_features(), f, protocol=pickle.HIGHEST_PROTOCOL)
         if verbose != 0:
