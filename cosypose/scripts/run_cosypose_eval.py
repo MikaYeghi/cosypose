@@ -167,6 +167,10 @@ def get_pose_meters(scene_ds):
         targets_filename = 'all_target_tless.json'
         n_top = 1
         visib_gt_min = 0.1
+    elif ds_name == 'tless.register.object':
+        targets_filename = 'all_target_tless.json'
+        n_top = 1
+        visib_gt_min = 0.1
     elif 'ycbv' in ds_name:
         compute_add = True
         visib_gt_min = -1
@@ -351,8 +355,8 @@ def main():
         ds_name = 'tless.primesense.test'
         assert n_views == 1
     elif args.config == 'tless-custom':
-        # ds_name = 'tless.primesense.test'
-        ds_name = 'tless.unseen.dataset'
+        ds_name = 'tless.register.object'
+        # ds_name = 'tless.unseen.dataset'
         args.coarse_features_on = True
         args.refiner_features_on = True
         args.renderer = 'pytorch3d'

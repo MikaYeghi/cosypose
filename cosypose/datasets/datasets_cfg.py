@@ -54,6 +54,9 @@ def make_scene_dataset(ds_name, n_frames=None):
     elif ds_name == 'tless.unseen.dataset':
         ds = _make_tless_dataset('tless_unseen')
 
+    elif ds_name == 'tless.register.object':
+        ds = _make_tless_dataset('tless_registering')
+
     # YCBV
     elif ds_name == 'ycbv.train.real':
         ds_dir = BOP_DS_DIR / 'ycbv'
