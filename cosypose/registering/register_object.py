@@ -205,7 +205,7 @@ def train_pose(args):
     if args.resume_run_id:
         resume_dir = EXP_DIR / args.resume_run_id
         resume_args = yaml.load((resume_dir / 'config.yaml').read_text(), Loader=yaml.UnsafeLoader) # [MIKAEL] added unsafe loader
-        keep_fields = set(['resume_run_id', 'n_epochs', ])
+        keep_fields = set(['resume_run_id', 'n_epochs', 'features_dict', 'batch_size', 'n_gpus', 'epoch_size', 'train_ds_names', 'val_ds_names', 'lr'])
         vars(args).update({k: v for k, v in vars(resume_args).items() if k not in keep_fields})
 
     args.train_refiner = args.TCO_input_generator == 'gt+noise'
@@ -268,7 +268,7 @@ def train_pose(args):
     mesh_db = MeshDataBase.from_object_ds(object_ds).batched(n_sym=args.n_symmetries_batch).cuda().float()
 
     model = create_model_pose(cfg=args, renderer=renderer, mesh_db=mesh_db).cuda()
-    freeze_model_networks(model)
+    freeze_model_networks(model) # Freezing the networks in order to train only the features
 
     eval_bundle = make_eval_bundle(args, model)
     if args.resume_run_id:
@@ -296,21 +296,22 @@ def train_pose(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     # Warmup
-    if args.n_epochs_warmup == 0:
-        lambd = lambda epoch: 1
-    else:
-        n_batches_warmup = args.n_epochs_warmup * (args.epoch_size // args.batch_size)
-        lambd = lambda batch: (batch + 1) / n_batches_warmup
-    lr_scheduler_warmup = torch.optim.lr_scheduler.LambdaLR(optimizer, lambd)
-    lr_scheduler_warmup.last_epoch = start_epoch * args.epoch_size // args.batch_size
+    # if args.n_epochs_warmup == 0:
+    #     lambd = lambda epoch: 1
+    # else:
+    #     n_batches_warmup = args.n_epochs_warmup * (args.epoch_size // args.batch_size)
+    #     lambd = lambda batch: (batch + 1) / n_batches_warmup
+    # lr_scheduler_warmup = torch.optim.lr_scheduler.LambdaLR(optimizer, lambd)
+    # lr_scheduler_warmup.last_epoch = start_epoch * args.epoch_size // args.batch_size
 
     # LR schedulers
     # Divide LR by 10 every args.lr_epoch_decay
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=args.lr_epoch_decay, gamma=0.1,
-    )
-    lr_scheduler.last_epoch = start_epoch - 1
-    lr_scheduler.step()
+    # lr_scheduler = torch.optim.lr_scheduler.StepLR(
+    #     optimizer, step_size=args.lr_epoch_decay, gamma=0.1,
+    # )
+    # # lr_scheduler.last_epoch = start_epoch - 1
+    # lr_scheduler.last_epoch = -1
+    # lr_scheduler.step()
 
     for epoch in range(start_epoch, end_epoch):
         meters_train = defaultdict(lambda: AverageValueMeter())
@@ -346,11 +347,11 @@ def train_pose(args):
                 meters_time['backward'].add(time.time() - t)
                 meters_time['memory'].add(torch.cuda.max_memory_allocated() / 1024. ** 2)
 
-                if epoch < args.n_epochs_warmup:
-                    lr_scheduler_warmup.step()
+                # if epoch < args.n_epochs_warmup:
+                #     lr_scheduler_warmup.step()
                 t = time.time()
-            if epoch >= args.n_epochs_warmup:
-                lr_scheduler.step()
+            # if epoch >= args.n_epochs_warmup:
+            #     lr_scheduler.step()
 
         @torch.no_grad()
         def validation():
