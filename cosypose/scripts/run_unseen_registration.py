@@ -85,12 +85,12 @@ def make_cfg(args):
             cfg.train_ds_names = [('tless.register.object', 5)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 150
+            cfg.n_epochs = 160
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
-            cfg.batch_size = 8
-            cfg.epoch_size = 100 * cfg.batch_size
+            cfg.batch_size = 32
+            cfg.epoch_size = 11520
             cfg.background_augmentation = False 
             cfg.rgb_augmentation = False
             cfg.n_dataloader_workers = 8 
@@ -102,7 +102,7 @@ def make_cfg(args):
             cfg.n_feature_channels = 64
             cfg.features_dict = 'object-features-85446619504502821800'
             cfg.resume_run_id = 'tless-coarse-new--107780'
-            cfg.lr = 1.0e0
+            cfg.lr = 1.0e-4
 
         else:
             raise ValueError(args.config)
