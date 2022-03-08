@@ -145,20 +145,11 @@ class PosePredictor(nn.Module):
         for n in range(n_iterations):
             TCO_input = TCO_input.detach()
             images_crop, K_crop, boxes_rend, boxes_crop = self.crop_inputs(images, K, TCO_input, labels)
-            # K_new = torch.matmul(K_crop[0], torch.inverse(K[0]))
-            # image = images[0]
             # for image in images_crop:
             #     image = image.permute(1,2,0)
             #     plt.imshow(image.cpu().numpy())
             #     plt.show()
-            # self.plot_crop(image, K_new, boxes_crop[0], labels[0])
 
-            # print("ORIGINAL K, CROP K AND BOXES CROP")
-            # print(K)
-            # print(K_crop)
-            # print(boxes_crop)
-            # print(TCO_input)
-            # print("RENDER BELOW")
             if self.features_on:
                 images_crop = self.embednet(images_crop)
                 K_crop = get_K_crop_resize(K=K.clone(), boxes=boxes_crop,

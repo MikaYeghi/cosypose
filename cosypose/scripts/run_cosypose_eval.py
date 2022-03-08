@@ -358,15 +358,15 @@ def main():
         ds_name = 'tless.primesense.test'
         assert n_views == 1
     elif args.config == 'tless-custom':
-        ds_name = 'tless.primesense.test'
+        # ds_name = 'tless.primesense.test'
         # ds_name = 'tless.unseen.dataset'
-        # ds_name = 'tless.register.object'
+        ds_name = 'tless.register.object'
         args.coarse_features_on = True
         args.refiner_features_on = True
         args.renderer = 'pytorch3d'
         args.n_feature_channels = 64
-        args.coarse_features_dict = "object-features-85446619504502821800-pre-register"
-        args.refiner_features_dict = "object-features-85446619504502821800-pre-register"
+        args.coarse_features_dict = "object-features-85446619504502821800"
+        args.refiner_features_dict = "object-features-85446619504502821800"
         n_coarse_iterations = 1
         n_refiner_iterations = 0
     elif args.config == 'tless-vivo':
