@@ -48,7 +48,7 @@ logger = get_logger(__name__)
 
 
 def log(config, model,
-        log_dict, test_dict, epoch):
+        log_dict, test_dict, epoch, renderer):
     save_dir = config.save_dir
     save_dir.mkdir(exist_ok=True)
     log_dict.update(epoch=epoch)
@@ -61,6 +61,11 @@ def log(config, model,
         path = save_dir / ckpt_name
         torch.save({'state_dict': model.module.state_dict(),
                     'epoch': epoch}, path, _use_new_zipfile_serialization=False)
+        try:
+            if renderer.features_on:
+                renderer.save_features_dict(save_dir=save_dir, verbose=0) # Save the updated features
+        except Exception:
+            pass
 
     save_checkpoint(model)
     with open(save_dir / 'log.txt', 'a') as f:
@@ -367,8 +372,6 @@ def train_pose(args):
             return run_eval(eval_bundle, epoch=epoch)
 
         train_epoch()
-        if args.features_on:
-            renderer.save_features_dict(verbose=0) # Save the updated features
         if epoch % args.val_epoch_interval == 0:
             validation()
 

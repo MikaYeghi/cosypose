@@ -158,8 +158,7 @@ class PosePredictor(nn.Module):
             renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
                                            TCO=TCO_input,
                                            K=K_crop, resolution=images_crop.shape[-2:])
-            # L2_loss = nn.MSELoss()
-            # loss = L2_loss(images_crop, renders)
+
             x = torch.cat((images_crop, renders), dim=1)
 
             model_outputs = self.net_forward(x)
@@ -188,5 +187,4 @@ class PosePredictor(nn.Module):
                 logger.info(f'Wrote debug data: {path}')
                 torch.save(self.tmp_debug, path)
 
-        # return outputs, loss
         return outputs

@@ -85,7 +85,7 @@ def make_cfg(args):
             cfg.train_ds_names = [('tless.register.object', 5)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 120
+            cfg.n_epochs = 200
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
