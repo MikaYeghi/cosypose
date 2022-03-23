@@ -48,7 +48,7 @@ logger = get_logger(__name__)
 
 
 def log(config, model,
-        log_dict, test_dict, epoch):
+        log_dict, test_dict, epoch, renderer):
     save_dir = config.save_dir
     save_dir.mkdir(exist_ok=True)
     log_dict.update(epoch=epoch)
@@ -61,6 +61,11 @@ def log(config, model,
         path = save_dir / ckpt_name
         torch.save({'state_dict': model.module.state_dict(),
                     'epoch': epoch}, path, _use_new_zipfile_serialization=False)
+        try:
+            if renderer.features_on:
+                renderer.save_features_dict(save_dir=save_dir, verbose=0) # Save the updated features
+        except Exception:
+            pass
 
     save_checkpoint(model)
     with open(save_dir / 'log.txt', 'a') as f:
@@ -196,7 +201,7 @@ def train_pose(args):
         resume_dir = EXP_DIR / args.resume_run_id
         resume_args = yaml.load((resume_dir / 'config.yaml').read_text(), Loader=yaml.UnsafeLoader) # [MIKAEL] added unsafe loader
         # keep_fields = set(['resume_run_id', 'epoch_size', ])
-        keep_fields = set(['resume_run_id', 'n_epochs', ])
+        keep_fields = set(['resume_run_id', 'n_epochs', 'features_dict', ])
         vars(args).update({k: v for k, v in vars(resume_args).items() if k not in keep_fields})
 
     args.train_refiner = args.TCO_input_generator == 'gt+noise'
@@ -355,8 +360,6 @@ def train_pose(args):
             return run_eval(eval_bundle, epoch=epoch)
 
         train_epoch()
-        if args.features_on:
-            renderer.save_features_dict(verbose=0) # Save the updated features
         if epoch % args.val_epoch_interval == 0:
             validation()
 
@@ -385,5 +388,5 @@ def train_pose(args):
         log_dict = reduce_dict(log_dict)
         if get_rank() == 0:
             log(config=args, model=model, epoch=epoch,
-                log_dict=log_dict, test_dict=test_dict)
+                log_dict=log_dict, test_dict=test_dict, renderer=renderer)
         dist.barrier()

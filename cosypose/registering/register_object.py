@@ -195,8 +195,8 @@ def freeze_model_networks(model):
     """
     for name, param in model.named_parameters():
         # Set requires_grad of all parameters that are not relevant to features to False. Features parameters must include "feature" keyword in them.
-        # if "feature" not in name:
-        if "embednet" in name:
+        if "feature" not in name:
+        # if "embednet" in name:
             param.requires_grad = False
 
 

@@ -339,8 +339,8 @@ def main():
         object_set = 'tless'
         # coarse_run_id = 'tless-coarse--10219'
         # refiner_run_id = 'tless-refiner--585928'
-        coarse_run_id = 'tless-coarse-new--107780'
-        refiner_run_id = 'tless-coarse-new--107780'
+        coarse_run_id = 'tless-coarse-new--547640'
+        refiner_run_id = 'tless-refiner-new--702358'
         n_coarse_iterations = 1
         n_refiner_iterations = 4
         use_gt_data = False          # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
@@ -365,8 +365,8 @@ def main():
         args.refiner_features_on = True
         args.renderer = 'pytorch3d'
         args.n_feature_channels = 64
-        args.coarse_features_dict = "object-features-85446619504502821800"
-        args.refiner_features_dict = "object-features-85446619504502821800"
+        args.coarse_features_dict = "object-features-03645743635042695990"
+        args.refiner_features_dict = "object-features-03645743635042695990"
         n_coarse_iterations = 1
         n_refiner_iterations = 0
     elif args.config == 'tless-vivo':

@@ -32,6 +32,7 @@ import time
 
 class Pytorch3DSceneRenderer(torch.nn.Module):
     def __init__(self,
+                save_dir,
                 ply_ds='ycbv',
                 device='cpu',
                 n_feature_channels=64,
@@ -55,7 +56,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         # Load the feature loader
         self.features_on = features_on
         if features_on:
-            self.feature_loader = FeatureLoader(number_of_channels=n_feature_channels, features_dict=features_dict) # loads features for CAD models
+            self.feature_loader = FeatureLoader(save_dir=save_dir, number_of_channels=n_feature_channels, features_dict=features_dict) # loads features for CAD models
             self.n_feature_channels = n_feature_channels
         else:
             self.n_feature_channels = 3
@@ -315,6 +316,6 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
 
         return images
 
-    def save_features_dict(self, verbose=1):
+    def save_features_dict(self, save_dir, verbose=1):
         assert self.features_on
-        self.feature_loader.save_features(verbose=verbose)
+        self.feature_loader.save_features(save_dir=save_dir, verbose=verbose)

@@ -10,7 +10,8 @@ def make_renderer(args, device):
                                         device=device, 
                                         n_feature_channels=args.n_feature_channels, 
                                         features_on=args.features_on, 
-                                        features_dict=args.features_dict)
+                                        features_dict=args.features_dict,
+                                        save_dir=args.save_dir)
     else:
         raise NotImplementedError
     return renderer    

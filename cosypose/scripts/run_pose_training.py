@@ -169,7 +169,7 @@ def make_cfg(args):
             cfg.train_ds_names = [('tless.seen.dataset', 4*5)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 5
+            cfg.n_epochs = 10
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
@@ -184,9 +184,9 @@ def make_cfg(args):
             cfg.renderer = 'pytorch3d'
             cfg.features_on = True
             cfg.n_feature_channels = 64
-            # cfg.features_dict = "object-features-75153531737675313845"
-            cfg.features_dict = None
-            # cfg.resume_run_id = 'tless-refiner-custom--953637'
+            cfg.features_dict = "object-features-02540954316731337436"
+            # cfg.features_dict = None
+            cfg.resume_run_id = 'tless-refiner-custom--99800'
             # cfg.resume_run_id = "tless-refiner-custom--191535"
 
         else:

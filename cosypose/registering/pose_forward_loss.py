@@ -46,9 +46,8 @@ def h_pose(model, mesh_db, data, meters,
         raise ValueError('Unknown input generator', input_generator)
 
     # model.module.enable_debug()
-    # pdb.set_trace()
-    # TCO_init = TCO_gt.detach().clone()
-    outputs = model(images=images, K=K, labels=labels,
+    TCO_init = TCO_gt.detach().clone()
+    outputs, loss = model(images=images, K=K, labels=labels,
                     TCO=TCO_init, n_iterations=n_iterations)
     # raise ValueError
 
@@ -68,14 +67,14 @@ def h_pose(model, mesh_db, data, meters,
             else:
                 raise ValueError
                 
-            pose_outputs = model_outputs['pose'] 
-            pdb.set_trace()           
+            pose_outputs = model_outputs['pose']
             loss_TCO_iter = loss_fn(
                 TCO_possible_gt=TCO_possible_gt,
                 TCO_input=TCO_input,
                 refiner_outputs=pose_outputs,
                 K_crop=K_crop, points=points,
             )
+            loss_TCO_iter += loss
         else:
             loss_TCO_iter = compute_ADD_L1_loss(
                 TCO_possible_gt[:, 0], TCO_pred, points

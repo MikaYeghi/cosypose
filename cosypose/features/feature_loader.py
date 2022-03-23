@@ -17,17 +17,17 @@ def get_random_code(length):
     return result_code
 
 class FeatureLoader(nn.Module):
-    def __init__(self, ds_path=CAD_DS_DIR, features_dict=None, code_length=20, number_of_channels=32) -> None:
+    def __init__(self, save_dir, ds_path=CAD_DS_DIR, features_dict=None, code_length=20, number_of_channels=32) -> None:
         super(FeatureLoader, self).__init__()
         self.ds_path = ds_path
         self.code_length = code_length
         self.features_dict = features_dict
 
         # Extract object feature tensors
-        self.features = self.extract_features(ds_path, features_dict=features_dict, number_of_channels=number_of_channels)
+        self.features = self.extract_features(save_dir=save_dir, ds_path=ds_path, features_dict=features_dict, number_of_channels=number_of_channels)
         self.number_of_channels = number_of_channels
 
-    def extract_features(self, ds_path=CAD_DS_DIR, number_of_channels=32, cad_suffix='.ply', features_dict=None):
+    def extract_features(self, save_dir, ds_path=CAD_DS_DIR, number_of_channels=32, cad_suffix='.ply', features_dict=None):
         if features_dict is None:
             print("Initializing random features for objects...")
             obj_path = list()
@@ -45,7 +45,7 @@ class FeatureLoader(nn.Module):
                 features__ = nn.parameter.Parameter(torch.randn(size=(verts.shape[0], number_of_channels)), requires_grad=True) # [MIKAEL] divide by the sqrt of num of channels
                 features_[obj_label] = features__
         else:
-            features_path = FEATURES_DIR / (features_dict + '.pkl') # features dictionary must be a pkl file
+            features_path = save_dir / (features_dict + '.pkl') # features dictionary must be a pkl file
             print(f"Loading object features from {features_path}")
             if features_path.exists():
                 with open(features_path, 'rb') as f:
@@ -67,14 +67,14 @@ class FeatureLoader(nn.Module):
     def get_n_channels(self):
         return self.number_of_channels
 
-    def save_features(self, verbose=1):
+    def save_features(self, save_dir, verbose=1):
         if self.features_dict is not None:
             code = self.features_dict
-            save_dir = FEATURES_DIR / f'{code}.pkl'
+            save_dir = save_dir / f'{code}.pkl'
         else:
             code = get_random_code(self.code_length)
             self.features_dict = code
-            save_dir = FEATURES_DIR / f'object-features-{code}.pkl'
+            save_dir = save_dir / f'object-features-{code}.pkl'
         with open(str(save_dir), 'wb') as f:
             pickle.dump(self.get_features(), f, protocol=pickle.HIGHEST_PROTOCOL)
         if verbose != 0:
