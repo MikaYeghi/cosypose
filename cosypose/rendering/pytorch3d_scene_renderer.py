@@ -1,6 +1,7 @@
 from tracemalloc import start
 from cosypose.datasets.datasets_cfg import make_ply_dataset
 from cosypose.lib3d.transform_ops import invert_T
+from cosypose.utils.logging import get_logger
 
 from pytorch3d.io import load_ply
 from pytorch3d.structures import Meshes, join_meshes_as_batch
@@ -30,6 +31,8 @@ import pdb
 from pprint import pprint
 import time
 
+logger = get_logger(__name__)
+
 class Pytorch3DSceneRenderer(torch.nn.Module):
     def __init__(self,
                 save_dir,
@@ -45,10 +48,10 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         if torch.cuda.is_available():
             self.device = torch.device(f"cuda:{torch.cuda.current_device()}")
             torch.cuda.set_device(self.device)
-            print("Using CUDA device for rendering")
+            logger.info("Using CUDA device for rendering")
         else:
             self.device = torch.device("cpu")
-            print("Using CPU for rendering")
+            logger.info("Using CPU for rendering")
 
         # Load the dataset of CAD models
         self.objects = self.load_dataset()
@@ -114,7 +117,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         assert self.ply_ds is not None
         obj_ds = dict()
 
-        print("Loading objects into memory...")
+        logger.info("Loading objects into memory...")
         for obj_ in tqdm(self.ply_ds):
             label = obj_.label
             obj_path, scale = self.ply_ds.get_ply_path_by_label(label)

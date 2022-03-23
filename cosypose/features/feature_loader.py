@@ -4,12 +4,15 @@ import torch.nn as nn
 import os
 from pytorch3d.io import load_ply
 from cosypose.config import BOP_DS_DIR, FEATURES_DIR
+from cosypose.utils.logging import get_logger
 import pickle
 import random
 import string
 import pdb
 
 CAD_DS_DIR = BOP_DS_DIR / 'tless' / 'models_cad' # primary path to the dataset of CAD models
+
+logger = get_logger(__name__)
 
 def get_random_code(length):
     digits = string.digits
@@ -29,7 +32,7 @@ class FeatureLoader(nn.Module):
 
     def extract_features(self, save_dir, ds_path=CAD_DS_DIR, number_of_channels=32, cad_suffix='.ply', features_dict=None):
         if features_dict is None:
-            print("Initializing random features for objects...")
+            logger.info("Initializing random features for objects...")
             obj_path = list()
             features_ = dict()
 
@@ -46,7 +49,7 @@ class FeatureLoader(nn.Module):
                 features_[obj_label] = features__
         else:
             features_path = save_dir / (features_dict + '.pkl') # features dictionary must be a pkl file
-            print(f"Loading object features from {features_path}")
+            logger.info(f"Loading object features from {features_path}")
             if features_path.exists():
                 with open(features_path, 'rb') as f:
                     try:
