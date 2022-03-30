@@ -263,13 +263,16 @@ def load_models(coarse_run_id, arguments, refiner_run_id=None, n_workers=8, obje
         logger.info("Building the coarse renderer using Pytorch3D...")
         arguments.features_on = arguments.coarse_features_on
         arguments.features_dict = arguments.coarse_features_dict
+        arguments.save_dir = EXP_DIR / coarse_run_id
         coarse_renderer = make_renderer(arguments, device)
         logger.info("Building the refiner renderer using Pytorch3D...")
         arguments.features_on = arguments.refiner_features_on
         arguments.features_dict = arguments.refiner_features_dict
+        arguments.save_dir = EXP_DIR / refiner_run_id
         refiner_renderer = make_renderer(arguments, device)
         delattr(arguments, 'features_on')
         delattr(arguments, 'features_dict')
+        delattr(arguments, 'save_dir')
     else:
         raise NotImplementedError
     mesh_db_batched = mesh_db.batched().cuda()
@@ -339,10 +342,11 @@ def main():
         object_set = 'tless'
         # coarse_run_id = 'tless-coarse--10219'
         # refiner_run_id = 'tless-refiner--585928'
-        coarse_run_id = 'tless-coarse-new--547640'
+        # coarse_run_id = 'tless-coarse-new--547640'
+        coarse_run_id = 'tless-coarse-new--144081'
         refiner_run_id = 'tless-refiner-new--702358'
         n_coarse_iterations = 1
-        n_refiner_iterations = 4
+        n_refiner_iterations = 0
         use_gt_data = False          # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
         n_multi_initializations = 1
         coarse_refiner_batch_size = 8
@@ -366,7 +370,7 @@ def main():
         args.renderer = 'pytorch3d'
         args.n_feature_channels = 64
         args.coarse_features_dict = "object-features-03645743635042695990"
-        args.refiner_features_dict = "object-features-03645743635042695990"
+        args.refiner_features_dict = "object-features-98855937320309201919"
         n_coarse_iterations = 1
         n_refiner_iterations = 0
     elif args.config == 'tless-vivo':
@@ -482,8 +486,8 @@ def main():
         det_key = 'pix2pose_detections'
     else:
         raise ValueError(ds_name)
-    predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
-    predictions_to_evaluate.add(f'{det_key}/coarse/iteration={n_coarse_iterations}')
+    # predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
+    # predictions_to_evaluate.add(f'{det_key}/coarse/iteration={n_coarse_iterations}')
 
     if args.n_views > 1:
         for k in [

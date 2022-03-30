@@ -159,6 +159,11 @@ class PosePredictor(nn.Module):
                                            TCO=TCO_input,
                                            K=K_crop, resolution=images_crop.shape[-2:])
 
+            # for image in renders:
+            #     image = image.permute(1,2,0)
+            #     plt.imshow(image.cpu().numpy())
+            #     plt.show()
+
             x = torch.cat((images_crop, renders), dim=1)
 
             model_outputs = self.net_forward(x)
