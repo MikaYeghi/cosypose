@@ -33,6 +33,11 @@ import time
 
 logger = get_logger(__name__)
 
+def add_noise(features, divider=1000.0, device='cpu'):
+    tensor_shape = features.shape
+    noise = torch.randn(tensor_shape).to(device) / np.sqrt(divider)
+    return features + noise
+
 class Pytorch3DSceneRenderer(torch.nn.Module):
     def __init__(self,
                 save_dir,
@@ -80,7 +85,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         rendered_images = images.permute(0, 3, 1, 2)
         return rendered_images
 
-    def load_object(self, obj_info, device='cpu'):
+    def load_object(self, obj_info, device='cpu', perturb=True):
         label = obj_info['name']
         verts, faces = self.objects[label]
         verts.to(device)
@@ -89,6 +94,8 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         # Generate the mesh
         if self.features_on:
             verts_features = self.feature_loader.get_features()[label]
+            if perturb:
+                verts_features = add_noise(verts_features, device=device)
         else:
             colour = 1.0
             verts_features=torch.tensor([[colour, colour, colour] for _ in range(len(verts))])

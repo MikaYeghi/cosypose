@@ -400,5 +400,5 @@ def train_pose(args):
         log_dict = reduce_dict(log_dict)
         if get_rank() == 0:
             log(config=args, model=model, epoch=epoch,
-                log_dict=log_dict, test_dict=test_dict)
+                log_dict=log_dict, test_dict=test_dict, renderer=renderer)
         dist.barrier()
