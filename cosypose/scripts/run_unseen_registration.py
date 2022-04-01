@@ -82,15 +82,15 @@ def make_cfg(args):
         cfg.input_resize = (540, 720)
 
         if args.config == 'tless-unseen-registration':
-            cfg.train_ds_names = [('tless.register.object', 5)]
+            cfg.train_ds_names = [('tless.seen.dataset', 1)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 110
+            cfg.n_epochs = 120
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
             cfg.batch_size = 32
-            cfg.epoch_size = 11520
+            cfg.epoch_size = 1152
             cfg.background_augmentation = False 
             cfg.rgb_augmentation = False
             cfg.n_dataloader_workers = 8 

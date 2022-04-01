@@ -33,7 +33,7 @@ import time
 
 logger = get_logger(__name__)
 
-def add_noise(features, divider=1000.0, device='cpu'):
+def add_noise(features, divider=100.0, device='cpu'):
     tensor_shape = features.shape
     noise = torch.randn(tensor_shape).to(device) / np.sqrt(divider)
     return features + noise

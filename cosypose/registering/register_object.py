@@ -211,7 +211,16 @@ def train_pose(args):
     if args.resume_run_id:
         resume_dir = EXP_DIR / args.resume_run_id
         resume_args = yaml.load((resume_dir / 'config.yaml').read_text(), Loader=yaml.UnsafeLoader) # [MIKAEL] added unsafe loader
-        keep_fields = set(['resume_run_id', 'n_epochs', 'features_dict', 'batch_size', 'n_gpus', 'epoch_size', 'train_ds_names', 'val_ds_names', 'lr'])
+        keep_fields = set(['resume_run_id', 
+                            'n_epochs', 
+                            'features_dict', 
+                            'batch_size', 
+                            'n_gpus', 
+                            'epoch_size', 
+                            'train_ds_names', 
+                            'val_ds_names', 
+                            'lr',
+                            'n_feature_channels'])
         vars(args).update({k: v for k, v in vars(resume_args).items() if k not in keep_fields})
 
     args.train_refiner = args.TCO_input_generator == 'gt+noise'

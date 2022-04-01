@@ -365,6 +365,8 @@ def main():
         # ds_name = 'tless.primesense.test'
         # ds_name = 'tless.unseen.dataset'
         ds_name = 'tless.register.object'
+        coarse_run_id = 'tless-coarse-new--547640'
+        refiner_run_id = 'tless-refiner-new--702358'
         args.coarse_features_on = True
         args.refiner_features_on = True
         args.renderer = 'pytorch3d'
