@@ -204,12 +204,12 @@ def make_cfg(args):
             cfg.train_ds_names = [('tless.seen.dataset', 4*5)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 10
+            cfg.n_epochs = 5
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
-            cfg.batch_size = 4
-            cfg.epoch_size = 10 * cfg.batch_size
+            cfg.batch_size = 8
+            cfg.epoch_size = 2880
             cfg.background_augmentation = False 
             cfg.rgb_augmentation = False
             cfg.n_dataloader_workers = 8 

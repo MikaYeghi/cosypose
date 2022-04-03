@@ -160,22 +160,26 @@ class PosePredictor(nn.Module):
                                            TCO=TCO_input,
                                            K=K_crop, resolution=images_crop.shape[-2:])
 
-            k = 0
-            for image in renders:
-                image = image[0]
-                plt.imshow(images_crop_original[k].permute(1,2,0).detach().cpu().numpy(), 'gray')
-                plt.show()
-                plt.imshow(image.detach().cpu().numpy(), 'gray')
-                plt.show()
-                plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
-                plt.show()
-                k += 1
+            # k = 0
+            # for image in renders:
+            #     image = image[0]
+            #     plt.imshow(images_crop_original[k].permute(1,2,0).detach().cpu().numpy(), 'gray')
+            #     plt.show()
+            #     plt.imshow(image.detach().cpu().numpy(), 'gray')
+            #     plt.show()
+            #     plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
+            #     plt.show()
+            #     k += 1
 
             x = torch.cat((images_crop, renders), dim=1)
 
             model_outputs = self.net_forward(x)
 
             TCO_output = self.update_pose(TCO_input, K_crop, model_outputs['pose'])
+
+            updated_renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
+                                           TCO=TCO_output,
+                                           K=K_crop, resolution=images_crop.shape[-2:])
 
             outputs[f'iteration={n+1}'] = {
                 'TCO_input': TCO_input,
@@ -184,6 +188,9 @@ class PosePredictor(nn.Module):
                 'model_outputs': model_outputs,
                 'boxes_rend': boxes_rend,
                 'boxes_crop': boxes_crop,
+                'images_crop': images_crop,
+                'renders': renders,
+                'updated_renders': updated_renders
             }
 
             TCO_input = TCO_output
