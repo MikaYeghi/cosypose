@@ -103,7 +103,10 @@ def load_posecnn_results():
 
 
 @MEMORY.cache
-def load_pix2pose_results(all_detections=True, remove_incorrect_poses=False):
+def load_pix2pose_results(all_detections=True, remove_incorrect_poses=False, restricted_objects=None, remove_restricted_objects=False):
+    """
+    If remove restricted objects is set to true, then this function removes all objects which are in the restricted objects list.
+    """
     if all_detections:
         results_path = LOCAL_DATA_DIR / 'saved_detections' / 'tless_pix2pose_retinanet_vivo_all.pkl'
     else:
@@ -128,14 +131,17 @@ def load_pix2pose_results(all_detections=True, remove_incorrect_poses=False):
             if remove_incorrect_poses and (np.sum(t) == 0 or np.max(t) > 100):
                 pass
             else:
-                infos.append(dict(
-                    scene_id=scene_id,
-                    view_id=view_id,
-                    score=scores[o],
-                    label=label,
-                ))
-                bboxes.append(new_boxes[o])
-                poses.append(poses_[o])
+                if remove_restricted_objects:
+                    assert restricted_objects is not None
+                    if label not in restricted_objects:
+                        infos.append(dict(
+                            scene_id=scene_id,
+                            view_id=view_id,
+                            score=scores[o],
+                            label=label,
+                        ))
+                        bboxes.append(new_boxes[o])
+                        poses.append(poses_[o])
 
     data = tc.PandasTensorCollection(
         infos=pd.DataFrame(infos),
@@ -340,11 +346,11 @@ def main():
     object_set = 'tless'
     if 'tless' in args.config:
         object_set = 'tless'
-        # coarse_run_id = 'tless-coarse--10219'
-        # refiner_run_id = 'tless-refiner--585928'
+        coarse_run_id = 'tless-coarse--10219'
+        refiner_run_id = 'tless-refiner--585928'
         # coarse_run_id = 'tless-coarse-new--547640'
-        coarse_run_id = 'tless-coarse-new--144081'
-        refiner_run_id = 'tless-refiner-new--702358'
+        # coarse_run_id = 'tless-coarse-new--144081'
+        # refiner_run_id = 'tless-refiner-new--702358'
         n_coarse_iterations = 1
         n_refiner_iterations = 0
         use_gt_data = False          # If set to "true", uses ground truth instead of "coarse" prediction, perturbs around the GT pose
@@ -362,19 +368,21 @@ def main():
         ds_name = 'tless.primesense.test'
         assert n_views == 1
     elif args.config == 'tless-custom':
-        # ds_name = 'tless.primesense.test'
-        # ds_name = 'tless.unseen.dataset'
-        ds_name = 'tless.register.object'
-        coarse_run_id = 'tless-coarse-new--547640'
-        refiner_run_id = 'tless-refiner-new--702358'
-        args.coarse_features_on = True
-        args.refiner_features_on = True
-        args.renderer = 'pytorch3d'
+        ds_name = 'tless.seen.dataset'
+        coarse_run_id = 'tless-coarse-new--774169'
+        refiner_run_id = 'tless-refiner-new--715356'
+        coarse_refiner_batch_size = 2
+        args.coarse_features_on = False
+        args.refiner_features_on = False
+        args.renderer = 'pybullet'
         args.n_feature_channels = 64
-        args.coarse_features_dict = "object-features-03645743635042695990"
-        args.refiner_features_dict = "object-features-98855937320309201919"
+        # args.coarse_features_dict = "13277985804692760397"
+        # args.refiner_features_dict = "object-features-98855937320309201919"
+        args.coarse_features_dict = None
+        args.refiner_features_dict = None
         n_coarse_iterations = 1
-        n_refiner_iterations = 0
+        n_refiner_iterations = 4
+        restricted_objects = ['obj_000025', 'obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']
     elif args.config == 'tless-vivo':
         ds_name = 'tless.primesense.test.bop19'
     elif args.config == 'ycbv':
@@ -436,7 +444,7 @@ def main():
     if skip_predictions:
         pred_kwargs = {}
     elif 'tless' in ds_name:
-        pix2pose_detections = load_pix2pose_results(all_detections='bop19' in ds_name).cpu()
+        pix2pose_detections = load_pix2pose_results(all_detections='bop19' in ds_name, restricted_objects=restricted_objects, remove_restricted_objects=True).cpu()
         pred_kwargs = {
             'pix2pose_detections': dict(
                 detections=pix2pose_detections,
@@ -488,7 +496,7 @@ def main():
         det_key = 'pix2pose_detections'
     else:
         raise ValueError(ds_name)
-    # predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
+    predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
     # predictions_to_evaluate.add(f'{det_key}/coarse/iteration={n_coarse_iterations}')
 
     if args.n_views > 1:

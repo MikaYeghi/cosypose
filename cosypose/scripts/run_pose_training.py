@@ -169,7 +169,7 @@ def make_cfg(args):
             cfg.train_ds_names = [('tless.seen.dataset', 5)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 20
+            cfg.n_epochs = 100
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             cfg.batch_size = 3
@@ -179,10 +179,10 @@ def make_cfg(args):
             cfg.n_rendering_workers = 8
             cfg.TCO_input_generator = 'fixed'
             cfg.renderer = 'pytorch3d'
-            cfg.features_on = False
+            cfg.features_on = True
             cfg.n_feature_channels = 64
             cfg.features_dict = None
-            cfg.epoch_size = 10 * cfg.batch_size
+            cfg.epoch_size = 11520
         elif args.config == 'tless-refiner-new':
             cfg.train_ds_names = [('tless.seen.dataset', 5)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
@@ -191,8 +191,8 @@ def make_cfg(args):
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             cfg.batch_size = 32
-            cfg.background_augmentation = False 
-            cfg.rgb_augmentation = False
+            cfg.background_augmentation = True 
+            cfg.rgb_augmentation = True
             cfg.n_dataloader_workers = 8 
             cfg.n_rendering_workers = 8
             cfg.TCO_input_generator = 'gt+noise'
@@ -200,24 +200,26 @@ def make_cfg(args):
             cfg.features_on = True
             cfg.n_feature_channels = 64
             cfg.features_dict = None
+            cfg.epoch_size = 11520
         elif args.config == 'tless-model-custom':
-            cfg.train_ds_names = [('tless.seen.dataset', 4*5)]
-            cfg.val_ds_names = [('tless.seen.dataset', 1)]
+            cfg.train_ds_names = [('synthetic.tless-filtered.train', 1),
+                              ('tless.primesense_seen.train', 5)]
+            cfg.val_ds_names = [('synthetic.tless-filtered.val', 1)]
             cfg.test_ds_names = []
             cfg.n_epochs = 5
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
-            cfg.batch_size = 8
+            cfg.batch_size = 4
             cfg.epoch_size = 2880
-            cfg.background_augmentation = False 
-            cfg.rgb_augmentation = False
+            cfg.background_augmentation = True 
+            cfg.rgb_augmentation = True
             cfg.n_dataloader_workers = 8 
             cfg.n_rendering_workers = 8
             # cfg.TCO_input_generator = 'gt+noise'
             cfg.TCO_input_generator = 'fixed'
             cfg.renderer = 'pytorch3d'
-            cfg.features_on = True
+            cfg.features_on = False
             cfg.n_feature_channels = 64
             # cfg.features_dict = "object-features-42973852719756944385"
             cfg.features_dict = None

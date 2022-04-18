@@ -82,17 +82,17 @@ def make_cfg(args):
         cfg.input_resize = (540, 720)
 
         if args.config == 'tless-unseen-registration':
-            cfg.train_ds_names = [('tless.seen.dataset', 1)]
+            cfg.train_ds_names = [('tless.register.object', 1)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 120
+            cfg.n_epochs = 100
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
             cfg.batch_size = 32
             cfg.epoch_size = 1152
-            cfg.background_augmentation = False 
-            cfg.rgb_augmentation = False
+            cfg.background_augmentation = True 
+            cfg.rgb_augmentation = True
             cfg.n_dataloader_workers = 8 
             cfg.n_rendering_workers = 8
             # cfg.TCO_input_generator = 'gt+noise'
@@ -100,8 +100,8 @@ def make_cfg(args):
             cfg.renderer = 'pytorch3d'
             cfg.features_on = True
             cfg.n_feature_channels = 64
-            cfg.features_dict = 'object-features-03645743635042695990'
-            cfg.resume_run_id = 'tless-coarse-new--547640'
+            cfg.features_dict = '13277985804692760397'
+            cfg.resume_run_id = 'tless-coarse-new--989592'
             cfg.lr = 1.0e-3
 
         else:

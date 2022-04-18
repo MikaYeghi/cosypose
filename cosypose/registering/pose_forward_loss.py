@@ -8,6 +8,7 @@ from cosypose.lib3d.cosypose_ops import (
     loss_refiner_CO_disentangled_quaternions,
 )
 from cosypose.lib3d.mesh_losses import compute_ADD_L1_loss
+from torch.nn import MSELoss
 
 import pdb
 from matplotlib import pyplot as plt
@@ -15,6 +16,11 @@ from matplotlib import pyplot as plt
 
 def cast(obj):
     return obj.cuda(non_blocking=True)
+
+
+def feature_loss(feature_maps, renders, device='cpu'):
+    loss_ = MSELoss()
+    return loss_(feature_maps.detach().to(device), renders.to(device))
 
 
 def h_pose(model, mesh_db, data, meters,
@@ -58,6 +64,9 @@ def h_pose(model, mesh_db, data, meters,
         TCO_input = iter_outputs['TCO_input']
         TCO_pred = iter_outputs['TCO_output']
         model_outputs = iter_outputs['model_outputs']
+        images_crop = iter_outputs['images_crop']
+        renders = iter_outputs['renders']
+        updated_renders = iter_outputs['updated_renders']
 
         if cfg.loss_disentangled:
             if cfg.n_pose_dims == 9:
@@ -74,6 +83,10 @@ def h_pose(model, mesh_db, data, meters,
                 refiner_outputs=pose_outputs,
                 K_crop=K_crop, points=points,
             )
+            # Add loss function which penalizes difference between features
+            feature_loss_ = feature_loss(images_crop, updated_renders, device='cuda:0')
+            # print(f"Feature loss: {feature_loss_}")
+            loss_TCO_iter += feature_loss_
         else:
             loss_TCO_iter = compute_ADD_L1_loss(
                 TCO_possible_gt[:, 0], TCO_pred, points
