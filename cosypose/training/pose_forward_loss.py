@@ -24,7 +24,7 @@ def feature_loss(feature_maps, renders, device='cpu'):
 
 
 def h_pose(model, mesh_db, data, meters,
-           cfg, n_iterations=1, input_generator='fixed'):
+           cfg, n_iterations=1, input_generator='fixed', features_lambda=10):
 
     batch_size, _, h, w = data.images.shape
 
@@ -83,9 +83,9 @@ def h_pose(model, mesh_db, data, meters,
                 K_crop=K_crop, points=points,
             )
             # Add loss function which penalizes difference between features
-            feature_loss_ = feature_loss(images_crop, updated_renders, device='cuda:0')
+            # feature_loss_ = feature_loss(images_crop, updated_renders, device='cuda:0')
             # print(f"Feature loss: {feature_loss_}")
-            loss_TCO_iter += feature_loss_
+            # loss_TCO_iter += features_lambda * feature_loss_
         else:
             loss_TCO_iter = compute_ADD_L1_loss(
                 TCO_possible_gt[:, 0], TCO_pred, points

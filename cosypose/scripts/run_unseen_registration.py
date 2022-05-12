@@ -85,23 +85,23 @@ def make_cfg(args):
             cfg.train_ds_names = [('tless.register.object', 1)]
             cfg.val_ds_names = [('tless.seen.dataset', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 100
+            cfg.n_epochs = 255
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
-            cfg.batch_size = 32
-            cfg.epoch_size = 1152
+            cfg.batch_size = 16
+            cfg.epoch_size = 11520
             cfg.background_augmentation = True 
             cfg.rgb_augmentation = True
-            cfg.n_dataloader_workers = 8 
+            cfg.n_dataloader_workers = 8
             cfg.n_rendering_workers = 8
             # cfg.TCO_input_generator = 'gt+noise'
             cfg.TCO_input_generator = 'fixed'
             cfg.renderer = 'pytorch3d'
             cfg.features_on = True
             cfg.n_feature_channels = 64
-            cfg.features_dict = '13277985804692760397'
-            cfg.resume_run_id = 'tless-coarse-new--989592'
+            cfg.features_dict = '22531983459896405055'
+            cfg.resume_run_id = 'tless-refiner-new--156077-object25-rough'
             cfg.lr = 1.0e-3
 
         else:

@@ -166,13 +166,16 @@ def make_cfg(args):
             cfg.TCO_input_generator = 'gt+noise'
             cfg.rgb_augmentation = False
         elif args.config == 'tless-coarse-new':
-            cfg.train_ds_names = [('tless.seen.dataset', 5)]
-            cfg.val_ds_names = [('tless.seen.dataset', 1)]
+            # cfg.train_ds_names = [('tless.seen.dataset', 5)]
+            # cfg.val_ds_names = [('tless.seen.dataset', 1)]
+            cfg.train_ds_names = [('synthetic.tless-filtered.train', 1),
+                              ('tless.primesense_seen.train', 5)]
+            cfg.val_ds_names = [('synthetic.tless-filtered.val', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 100
+            cfg.n_epochs = 200
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
-            cfg.batch_size = 3
+            cfg.batch_size = 32
             cfg.background_augmentation = True 
             cfg.rgb_augmentation = True
             cfg.n_dataloader_workers = 8 
@@ -183,11 +186,15 @@ def make_cfg(args):
             cfg.n_feature_channels = 64
             cfg.features_dict = None
             cfg.epoch_size = 11520
+            cfg.resume_run_id = "tless-coarse-new--355675"
         elif args.config == 'tless-refiner-new':
-            cfg.train_ds_names = [('tless.seen.dataset', 5)]
-            cfg.val_ds_names = [('tless.seen.dataset', 1)]
+            # cfg.train_ds_names = [('tless.seen.dataset', 5)]
+            # cfg.val_ds_names = [('tless.seen.dataset', 1)]
+            cfg.train_ds_names = [('synthetic.tless-filtered.train', 1),
+                              ('tless.primesense_seen.train', 5)]
+            cfg.val_ds_names = [('synthetic.tless-filtered.val', 1)]
             cfg.test_ds_names = []
-            cfg.n_epochs = 100
+            cfg.n_epochs = 200
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             cfg.batch_size = 32

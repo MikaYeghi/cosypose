@@ -75,6 +75,9 @@ class CoarseRefinePosePredictor(torch.nn.Module):
             timer.resume()
             obj_inputs = obj_data[batch_ids.numpy()]
             labels = obj_inputs.infos['label'].values
+            # for label in labels:
+            #     if label not in ['obj_000025', 'obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']:
+            #         raise ValueError(f"INCORRECT label: {label}")
             im_ids = obj_inputs.infos['batch_im_id'].values
             images_ = images[im_ids]
             K_ = K[im_ids]

@@ -46,7 +46,8 @@ class FeatureLoader(nn.Module):
             for obj in obj_path:
                 obj_label = obj.split('/')[-1].split('.')[0]
                 verts, _ = load_ply(obj) # loads a tuple of (vertices, features)
-                features__ = nn.parameter.Parameter(torch.randn(size=(verts.shape[0], number_of_channels)) / np.sqrt(number_of_channels), requires_grad=True) # [MIKAEL] divide by the sqrt of num of channels
+                # features__ = nn.parameter.Parameter(torch.randn(size=(verts.shape[0], number_of_channels)) / np.sqrt(number_of_channels), requires_grad=True) # [MIKAEL] divide by the sqrt of num of channels
+                features__ = nn.parameter.Parameter(torch.rand(size=(verts.shape[0], number_of_channels)), requires_grad=True) # [MIKAEL] divide by the sqrt of num of channels
                 features_[obj_label] = features__
         else:
             features_path = save_dir / (features_dict + '.pkl') # features dictionary must be a pkl file

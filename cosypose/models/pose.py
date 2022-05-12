@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 import torch
 from torch import nn
 
@@ -20,7 +21,7 @@ from cosypose.models.embednet import embednet
 import cv2
 from tqdm import tqdm
 from matplotlib import pyplot as plt
-
+from einops import rearrange
 
 class PosePredictor(nn.Module):
     def __init__(self, backbone, renderer,
@@ -139,6 +140,21 @@ class PosePredictor(nn.Module):
         assert K.shape == (bsz, 3, 3)
         assert TCO.shape == (bsz, 4, 4)
         assert len(labels) == bsz
+        for label in labels:
+            if label not in ['obj_000025']:
+                raise ValueError(f"Incorrect label: {label}!")
+
+        # net = nn.Sequential(
+        #     nn.Conv2d(3, 10, kernel_size=5),
+        #     nn.BatchNorm2d(10),
+        #     nn.MaxPool2d(kernel_size=2),
+        #     nn.ReLU(),
+        #     nn.Conv2d(10, 20, kernel_size=5),
+        #     nn.BatchNorm2d(20),
+        #     nn.MaxPool2d(kernel_size=2),
+        #     nn.ReLU(),
+        # )
+        # net = net.cuda()
 
         outputs = dict()
         TCO_input = TCO
@@ -160,17 +176,6 @@ class PosePredictor(nn.Module):
                                            TCO=TCO_input,
                                            K=K_crop, resolution=images_crop.shape[-2:])
 
-            # k = 0
-            # for image in renders:
-            #     image = image[0]
-            #     plt.imshow(images_crop_original[k].permute(1,2,0).detach().cpu().numpy(), 'gray')
-            #     plt.show()
-            #     plt.imshow(image.detach().cpu().numpy(), 'gray')
-            #     plt.show()
-            #     plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
-            #     plt.show()
-            #     k += 1
-
             x = torch.cat((images_crop, renders), dim=1)
 
             model_outputs = self.net_forward(x)
@@ -180,6 +185,25 @@ class PosePredictor(nn.Module):
             updated_renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
                                            TCO=TCO_output,
                                            K=K_crop, resolution=images_crop.shape[-2:])
+
+            # y = net(images_crop_original)
+            # pdb.set_trace()
+            # x = rearrange(images_crop, 'N (C1 C2) W H -> (N C1 W) (C2 H)', C1=8)
+            # x = x.cpu()
+            # plt.imshow(x)
+            # plt.show()
+            # k = 0
+            # for image in renders:
+            #     image = image[0]
+            #     plt.imshow(images_crop_original[k].permute(1,2,0).detach().cpu().numpy(), 'gray')
+            #     plt.show()
+            #     plt.imshow(image.detach().cpu().numpy(), 'gray')
+            #     plt.show()
+            #     plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
+            #     plt.show()
+            #     plt.imshow(updated_renders[k][0].detach().cpu().numpy(), 'gray')
+            #     plt.show()
+            #     k += 1
 
             outputs[f'iteration={n+1}'] = {
                 'TCO_input': TCO_input,

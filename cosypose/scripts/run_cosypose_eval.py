@@ -142,6 +142,15 @@ def load_pix2pose_results(all_detections=True, remove_incorrect_poses=False, res
                         ))
                         bboxes.append(new_boxes[o])
                         poses.append(poses_[o])
+                else:
+                    infos.append(dict(
+                            scene_id=scene_id,
+                            view_id=view_id,
+                            score=scores[o],
+                            label=label,
+                        ))
+                    bboxes.append(new_boxes[o])
+                    poses.append(poses_[o])
 
     data = tc.PandasTensorCollection(
         infos=pd.DataFrame(infos),
@@ -170,6 +179,10 @@ def get_pose_meters(scene_ds):
         n_top = 1
         visib_gt_min = 0.1
     elif ds_name == 'tless.unseen.dataset':
+        targets_filename = 'all_target_tless.json'
+        n_top = 1
+        visib_gt_min = 0.1
+    elif ds_name == 'tless.full.unseen':
         targets_filename = 'all_target_tless.json'
         n_top = 1
         visib_gt_min = 0.1
@@ -368,21 +381,32 @@ def main():
         ds_name = 'tless.primesense.test'
         assert n_views == 1
     elif args.config == 'tless-custom':
-        ds_name = 'tless.seen.dataset'
-        coarse_run_id = 'tless-coarse-new--774169'
-        refiner_run_id = 'tless-refiner-new--715356'
+        # ds_name = 'tless.register.object'
+        ds_name = 'tless.primesense.test'
+        coarse_run_id = 'tless-coarse-new--210857'
+        refiner_run_id = 'tless-refiner-new--156077'
         coarse_refiner_batch_size = 2
-        args.coarse_features_on = False
-        args.refiner_features_on = False
-        args.renderer = 'pybullet'
+        args.coarse_features_on = True
+        args.refiner_features_on = True
+        args.renderer = 'pytorch3d'
         args.n_feature_channels = 64
         # args.coarse_features_dict = "13277985804692760397"
         # args.refiner_features_dict = "object-features-98855937320309201919"
-        args.coarse_features_dict = None
-        args.refiner_features_dict = None
+        args.coarse_features_dict = "95502602796276285628"
+        args.refiner_features_dict = "22531983459896405055"
         n_coarse_iterations = 1
-        n_refiner_iterations = 4
-        restricted_objects = ['obj_000025', 'obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']
+        n_refiner_iterations = 0
+        restricted_objects = []
+        # restricted_objects = ['obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']
+        # restricted_objects = ['obj_000025', 'obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']
+        # restricted_objects = ['obj_000001', 'obj_000002', 'obj_000003', 'obj_000004', 'obj_000005', 'obj_000006', 'obj_000007', 
+        #                     'obj_000008', 'obj_000009', 'obj_000010', 'obj_000011', 'obj_000012', 'obj_000013', 'obj_000014', 
+        #                     'obj_000015', 'obj_000016', 'obj_000017', 'obj_000018', 'obj_000019', 'obj_000020', 'obj_000021', 
+        #                     'obj_000022', 'obj_000023', 'obj_000024']
+        # restricted_objects = ['obj_000001', 'obj_000002', 'obj_000003', 'obj_000004', 'obj_000005', 'obj_000006', 'obj_000007', 
+        #                     'obj_000008', 'obj_000009', 'obj_000010', 'obj_000011', 'obj_000012', 'obj_000013', 'obj_000014', 
+        #                     'obj_000015', 'obj_000016', 'obj_000017', 'obj_000018', 'obj_000019', 'obj_000020', 'obj_000021', 
+        #                     'obj_000022', 'obj_000023', 'obj_000024', 'obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']
     elif args.config == 'tless-vivo':
         ds_name = 'tless.primesense.test.bop19'
     elif args.config == 'ycbv':
@@ -496,8 +520,8 @@ def main():
         det_key = 'pix2pose_detections'
     else:
         raise ValueError(ds_name)
-    predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
-    # predictions_to_evaluate.add(f'{det_key}/coarse/iteration={n_coarse_iterations}')
+    # predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
+    predictions_to_evaluate.add(f'{det_key}/coarse/iteration={n_coarse_iterations}')
 
     if args.n_views > 1:
         for k in [

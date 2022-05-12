@@ -291,8 +291,18 @@ def train_pose(args):
         path = resume_dir / 'checkpoint.pth.tar'
         logger.info(f'Loading checkpoing from {path}')
         save = torch.load(path)
+        
+        # # Rough object 25
+        # model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(torch.rand(34,64))
+        # model = model.cuda()
+
         state_dict = save['state_dict']
         model.load_state_dict(state_dict)
+        
+        # # Rough object 25
+        # model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(torch.rand(34,64))
+        # model = model.cuda()
+
         start_epoch = save['epoch'] + 1
     else:
         start_epoch = 0

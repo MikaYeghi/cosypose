@@ -52,7 +52,6 @@ def h_pose(model, mesh_db, data, meters,
         raise ValueError('Unknown input generator', input_generator)
 
     # model.module.enable_debug()
-    TCO_init = TCO_gt.detach().clone()
     outputs = model(images=images, K=K, labels=labels,
                     TCO=TCO_init, n_iterations=n_iterations)
     # raise ValueError
@@ -84,9 +83,9 @@ def h_pose(model, mesh_db, data, meters,
                 K_crop=K_crop, points=points,
             )
             # Add loss function which penalizes difference between features
-            feature_loss_ = feature_loss(images_crop, updated_renders, device='cuda:0')
+            # feature_loss_ = feature_loss(images_crop, updated_renders, device='cuda:0')
             # print(f"Feature loss: {feature_loss_}")
-            loss_TCO_iter += feature_loss_
+            # loss_TCO_iter += feature_loss_
         else:
             loss_TCO_iter = compute_ADD_L1_loss(
                 TCO_possible_gt[:, 0], TCO_pred, points

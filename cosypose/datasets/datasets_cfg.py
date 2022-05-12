@@ -42,6 +42,7 @@ def make_scene_dataset(ds_name, n_frames=None):
         ds = _make_tless_dataset('test_primesense')
         ds = keep_bop19(ds)
 
+    # Additional datasets for TLESS        
     elif ds_name == 'tless.debug.dataset':
         ds = _make_tless_dataset('tless_debug')
 
@@ -54,8 +55,14 @@ def make_scene_dataset(ds_name, n_frames=None):
     elif ds_name == 'tless.unseen.dataset':
         ds = _make_tless_dataset('tless_unseen')
 
+    elif ds_name == 'tless.full.unseen':
+        ds = _make_tless_dataset('tless_full_unseen')
+
     elif ds_name == 'tless.register.object':
         ds = _make_tless_dataset('tless_registering')
+    
+    elif ds_name == 'tless.object.25':
+        ds = _make_tless_dataset('tless_object_25')
 
     elif ds_name == 'tless.primesense_seen.train':
         ds = _make_tless_dataset('train_primesense_seen')
