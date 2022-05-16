@@ -41,6 +41,7 @@ from cosypose.utils.logging import get_logger
 from cosypose.utils.distributed import get_world_size, get_rank, sync_model, init_distributed_mode, reduce_dict
 from torch.backends import cudnn
 
+import torch.nn.functional as F
 import pdb
 
 cudnn.benchmark = True
@@ -291,17 +292,37 @@ def train_pose(args):
         path = resume_dir / 'checkpoint.pth.tar'
         logger.info(f'Loading checkpoing from {path}')
         save = torch.load(path)
-        
-        # # Rough object 25
+
         # model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(torch.rand(34,64))
+
+        # model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000026'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000027'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000028'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000029'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000030'] = torch.nn.Parameter(torch.rand(34,64))
         # model = model.cuda()
 
         state_dict = save['state_dict']
         model.load_state_dict(state_dict)
-        
-        # # Rough object 25
+
+        # Rough object 25
         # model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000026'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000027'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000028'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000029'] = torch.nn.Parameter(torch.rand(34,64))
+        # model.renderer.feature_loader.features['obj_000030'] = torch.nn.Parameter(torch.rand(34,64))
         # model = model.cuda()
+        # pdb.set_trace()
+        model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (4423,)), num_classes=64).float())
+        model.renderer.feature_loader.features['obj_000026'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (4396,)), num_classes=64).float())
+        model.renderer.feature_loader.features['obj_000027'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (3747,)), num_classes=64).float())
+        model.renderer.feature_loader.features['obj_000028'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (13444,)), num_classes=64).float())
+        model.renderer.feature_loader.features['obj_000029'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (2870,)), num_classes=64).float())
+        model.renderer.feature_loader.features['obj_000030'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (6094,)), num_classes=64).float())
+        model = model.cuda()
+        # pdb.set_trace()
 
         start_epoch = save['epoch'] + 1
     else:

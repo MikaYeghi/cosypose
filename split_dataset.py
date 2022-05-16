@@ -48,6 +48,7 @@ dirs_list = os.listdir()
 for idx in range(len(dirs_list)):
     if dirs_list[idx] == 'split_dataset.py':
         del dirs_list[idx]
+        break
 
 # Loop through all directories
 for scene in tqdm(dirs_list):

@@ -140,9 +140,6 @@ class PosePredictor(nn.Module):
         assert K.shape == (bsz, 3, 3)
         assert TCO.shape == (bsz, 4, 4)
         assert len(labels) == bsz
-        for label in labels:
-            if label not in ['obj_000025']:
-                raise ValueError(f"Incorrect label: {label}!")
 
         # net = nn.Sequential(
         #     nn.Conv2d(3, 10, kernel_size=5),
@@ -188,7 +185,7 @@ class PosePredictor(nn.Module):
 
             # y = net(images_crop_original)
             # pdb.set_trace()
-            # x = rearrange(images_crop, 'N (C1 C2) W H -> (N C1 W) (C2 H)', C1=8)
+            # x = rearrange(renders, 'N (C1 C2) W H -> (N C1 W) (C2 H)', C1=8)
             # x = x.cpu()
             # plt.imshow(x)
             # plt.show()

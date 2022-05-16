@@ -262,7 +262,7 @@ def train_pose(args):
     renderer = make_renderer(args, device)
     object_ds = make_object_dataset(args.object_ds_name)
     mesh_db = MeshDataBase.from_object_ds(object_ds).batched(n_sym=args.n_symmetries_batch).cuda().float()
-
+    pdb.set_trace()
     model = create_model_pose(cfg=args, renderer=renderer, mesh_db=mesh_db).cuda()
     
     eval_bundle = make_eval_bundle(args, model)
