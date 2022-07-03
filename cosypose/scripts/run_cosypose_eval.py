@@ -519,8 +519,8 @@ def main():
         det_key = 'pix2pose_detections'
     else:
         raise ValueError(ds_name)
-    # predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
-    predictions_to_evaluate.add(f'{det_key}/coarse/iteration={n_coarse_iterations}')
+    predictions_to_evaluate.add(f'{det_key}/refiner/iteration={n_refiner_iterations}')
+    # predictions_to_evaluate.add(f'{det_key}/coarse/iteration={n_coarse_iterations}')
 
     if args.n_views > 1:
         for k in [

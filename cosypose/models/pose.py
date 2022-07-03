@@ -189,18 +189,18 @@ class PosePredictor(nn.Module):
             # x = x.cpu()
             # plt.imshow(x)
             # plt.show()
-            # k = 0
-            # for image in renders:
-            #     image = image[0]
+            k = 0
+            for image in renders:
+                image = image[0]
                 # plt.imshow(images_crop_original[k].permute(1,2,0).detach().cpu().numpy(), 'gray')
                 # plt.show()
-                # plt.imshow(image.detach().cpu().numpy(), 'gray')
-                # plt.show()
-                # plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
-                # plt.show()
+                plt.imshow(image.detach().cpu().numpy(), 'gray')
+                plt.show()
+                plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
+                plt.show()
                 # plt.imshow(updated_renders[k][0].detach().cpu().numpy(), 'gray')
                 # plt.show()
-                # k += 1
+                k += 1
 
             outputs[f'iteration={n+1}'] = {
                 'TCO_input': TCO_input,
