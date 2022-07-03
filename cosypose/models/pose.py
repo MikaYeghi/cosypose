@@ -179,9 +179,9 @@ class PosePredictor(nn.Module):
 
             TCO_output = self.update_pose(TCO_input, K_crop, model_outputs['pose'])
 
-            updated_renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
-                                           TCO=TCO_output,
-                                           K=K_crop, resolution=images_crop.shape[-2:])
+            # updated_renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
+            #                                TCO=TCO_output,
+            #                                K=K_crop, resolution=images_crop.shape[-2:])
 
             # y = net(images_crop_original)
             # pdb.set_trace()
@@ -192,15 +192,15 @@ class PosePredictor(nn.Module):
             # k = 0
             # for image in renders:
             #     image = image[0]
-            #     plt.imshow(images_crop_original[k].permute(1,2,0).detach().cpu().numpy(), 'gray')
-            #     plt.show()
-            #     plt.imshow(image.detach().cpu().numpy(), 'gray')
-            #     plt.show()
-            #     plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
-            #     plt.show()
-            #     plt.imshow(updated_renders[k][0].detach().cpu().numpy(), 'gray')
-            #     plt.show()
-            #     k += 1
+                # plt.imshow(images_crop_original[k].permute(1,2,0).detach().cpu().numpy(), 'gray')
+                # plt.show()
+                # plt.imshow(image.detach().cpu().numpy(), 'gray')
+                # plt.show()
+                # plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
+                # plt.show()
+                # plt.imshow(updated_renders[k][0].detach().cpu().numpy(), 'gray')
+                # plt.show()
+                # k += 1
 
             outputs[f'iteration={n+1}'] = {
                 'TCO_input': TCO_input,
@@ -211,7 +211,7 @@ class PosePredictor(nn.Module):
                 'boxes_crop': boxes_crop,
                 'images_crop': images_crop,
                 'renders': renders,
-                'updated_renders': updated_renders
+                # 'updated_renders': updated_renders
             }
 
             TCO_input = TCO_output

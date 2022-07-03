@@ -315,14 +315,21 @@ def train_pose(args):
         # model.renderer.feature_loader.features['obj_000030'] = torch.nn.Parameter(torch.rand(34,64))
         # model = model.cuda()
         # pdb.set_trace()
-        model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (4423,)), num_classes=64).float())
-        model.renderer.feature_loader.features['obj_000026'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (4396,)), num_classes=64).float())
-        model.renderer.feature_loader.features['obj_000027'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (3747,)), num_classes=64).float())
-        model.renderer.feature_loader.features['obj_000028'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (13444,)), num_classes=64).float())
-        model.renderer.feature_loader.features['obj_000029'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (2870,)), num_classes=64).float())
-        model.renderer.feature_loader.features['obj_000030'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (6094,)), num_classes=64).float())
+        # model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (4423,)), num_classes=64).float())
+        # model.renderer.feature_loader.features['obj_000026'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (4396,)), num_classes=64).float())
+        # model.renderer.feature_loader.features['obj_000027'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (3747,)), num_classes=64).float())
+        # model.renderer.feature_loader.features['obj_000028'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (13444,)), num_classes=64).float())
+        # model.renderer.feature_loader.features['obj_000029'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (2870,)), num_classes=64).float())
+        # model.renderer.feature_loader.features['obj_000030'] = torch.nn.Parameter(F.one_hot(torch.randint(0, 64, (6094,)), num_classes=64).float())
+        # model = model.cuda()
+
+        model.renderer.feature_loader.features['obj_000025'] = torch.nn.Parameter(torch.zeros((4423,64)).float())
+        model.renderer.feature_loader.features['obj_000026'] = torch.nn.Parameter(torch.zeros((4396,64)).float())
+        model.renderer.feature_loader.features['obj_000027'] = torch.nn.Parameter(torch.zeros((3747,64)).float())
+        model.renderer.feature_loader.features['obj_000028'] = torch.nn.Parameter(torch.zeros((13444,64)).float())
+        model.renderer.feature_loader.features['obj_000029'] = torch.nn.Parameter(torch.zeros((2870,64)).float())
+        model.renderer.feature_loader.features['obj_000030'] = torch.nn.Parameter(torch.zeros((6094,64)).float())
         model = model.cuda()
-        # pdb.set_trace()
 
         start_epoch = save['epoch'] + 1
     else:

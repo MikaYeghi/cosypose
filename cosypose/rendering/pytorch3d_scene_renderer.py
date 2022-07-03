@@ -254,7 +254,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
         raster_settings = RasterizationSettings(image_size=resolution,
                                                 blur_radius=0.0, 
                                                 faces_per_pixel=1,
-                                                max_faces_per_bin=150000,
+                                                # max_faces_per_bin=150000,
                                             )
 
         if self.features_on:
@@ -275,6 +275,7 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
                 cameras=cameras, 
                 raster_settings=raster_settings
             )
+        rasterizer.raster_settings.clip_barycentric_coords=True
 
         renderer = MeshRenderer(
             rasterizer=rasterizer,

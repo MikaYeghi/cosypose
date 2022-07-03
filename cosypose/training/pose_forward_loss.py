@@ -65,7 +65,7 @@ def h_pose(model, mesh_db, data, meters,
         model_outputs = iter_outputs['model_outputs']
         images_crop = iter_outputs['images_crop']
         renders = iter_outputs['renders']
-        updated_renders = iter_outputs['updated_renders']
+        # updated_renders = iter_outputs['updated_renders']
 
         if cfg.loss_disentangled:
             if cfg.n_pose_dims == 9:

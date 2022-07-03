@@ -89,7 +89,7 @@ def make_cfg(args):
             cfg.lr_epoch_decay = 500
             cfg.n_epochs_warmup = 50
             # cfg.val_epoch_interval = 1
-            cfg.batch_size = 16
+            cfg.batch_size = 2
             cfg.epoch_size = 11520
             cfg.background_augmentation = True 
             cfg.rgb_augmentation = True
