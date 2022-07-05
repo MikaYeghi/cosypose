@@ -12,9 +12,9 @@ from cosypose.integrated.multi_init import MultipleInitializer
 
 from torch.utils.data import DataLoader
 import pdb
+from pympler.asizeof import asizeof
 
 logger = get_logger(__name__)
-
 
 class MultiviewPredictionRunner:
     def __init__(self, scene_ds, batch_size=1, cache_data=False, n_workers=4):
@@ -113,6 +113,7 @@ class MultiviewPredictionRunner:
         
         predictions = defaultdict(list)
         for data in tqdm(self.dataloader):
+            logger.debug(f"Size of predictions variable: {asizeof(predictions) / 1024 / 1024}MB")
             images = data['images'].cuda().float().permute(0, 3, 1, 2) / 255
             cameras = data['cameras'].cuda().float()
             gt_detections = data['gt_detections'].cuda().float()
