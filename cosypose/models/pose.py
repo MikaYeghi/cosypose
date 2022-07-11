@@ -52,6 +52,10 @@ class PosePredictor(nn.Module):
         if self.features_on:
             self.embednet = embednet(backbone='resnet34', pretrained=True).cuda()
 
+
+        """Unity network"""
+        self.ident_net = nn.Identity()
+
     def enable_debug(self):
         self.debug = True
 
@@ -168,6 +172,9 @@ class PosePredictor(nn.Module):
                 images_crop = self.embednet(images_crop)
                 K_crop = get_K_crop_resize(K=K.clone(), boxes=boxes_crop,
                                    orig_size=images.shape[-2:], crop_resize=images_crop.shape[-2:])
+
+            # Pass the input images through an identity network [checking that including a network works fine]
+            images_crop = self.ident_net(images_crop)
 
             renders = self.renderer.render(obj_infos=[dict(name=l) for l in labels],
                                            TCO=TCO_input,
