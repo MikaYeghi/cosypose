@@ -381,7 +381,6 @@ def main():
         ds_name = 'tless.primesense.test'
         assert n_views == 1
     elif args.config == 'tless-custom':
-        # ds_name = 'tless.register.object'
         # ds_name = 'tless.full.unseen'
         ds_name = 'tless.seen.dataset'
         coarse_run_id = 'tless-coarse-new--521298'
@@ -396,16 +395,11 @@ def main():
         n_coarse_iterations = 1
         n_refiner_iterations = 4
         restricted_objects = []
-        # restricted_objects = ['obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']
         restricted_objects = ['obj_000025', 'obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']
         # restricted_objects = ['obj_000001', 'obj_000002', 'obj_000003', 'obj_000004', 'obj_000005', 'obj_000006', 'obj_000007', 
         #                     'obj_000008', 'obj_000009', 'obj_000010', 'obj_000011', 'obj_000012', 'obj_000013', 'obj_000014', 
         #                     'obj_000015', 'obj_000016', 'obj_000017', 'obj_000018', 'obj_000019', 'obj_000020', 'obj_000021', 
         #                     'obj_000022', 'obj_000023', 'obj_000024']
-        # restricted_objects = ['obj_000001', 'obj_000002', 'obj_000003', 'obj_000004', 'obj_000005', 'obj_000006', 'obj_000007', 
-        #                     'obj_000008', 'obj_000009', 'obj_000010', 'obj_000011', 'obj_000012', 'obj_000013', 'obj_000014', 
-        #                     'obj_000015', 'obj_000016', 'obj_000017', 'obj_000018', 'obj_000019', 'obj_000020', 'obj_000021', 
-        #                     'obj_000022', 'obj_000023', 'obj_000024', 'obj_000026', 'obj_000027', 'obj_000028', 'obj_000029', 'obj_000030']
     elif args.config == 'tless-vivo':
         ds_name = 'tless.primesense.test.bop19'
     elif args.config == 'ycbv':
