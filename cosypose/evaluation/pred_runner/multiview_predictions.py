@@ -113,7 +113,6 @@ class MultiviewPredictionRunner:
         
         predictions = defaultdict(list)
         for data in tqdm(self.dataloader):
-            logger.debug(f"Size of predictions variable: {asizeof(predictions) / 1024 / 1024}MB")
             images = data['images'].cuda().float().permute(0, 3, 1, 2) / 255
             cameras = data['cameras'].cuda().float()
             gt_detections = data['gt_detections'].cuda().float()
