@@ -30,6 +30,7 @@ from tqdm import tqdm
 import pdb
 from pprint import pprint
 import time
+import random
 
 logger = get_logger(__name__)
 
@@ -98,7 +99,10 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
                 verts_features = add_noise(verts_features, device=device)
         else:
             colour = 1.0
-            verts_features=torch.tensor([[colour, colour, colour] for _ in range(len(verts))])
+            colour1 = random.random()
+            colour2 = random.random()
+            colour3 = random.random()
+            verts_features=torch.tensor([[colour1, colour2, colour3] for _ in range(len(verts))])
         verts_features = torch.unsqueeze(verts_features, 0).to(device)
         textures = TexturesVertex(verts_features=verts_features)
         mesh = Meshes(verts=[verts], faces=[faces], textures=textures).to(device)

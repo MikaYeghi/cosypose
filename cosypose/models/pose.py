@@ -203,8 +203,8 @@ class PosePredictor(nn.Module):
             #     # plt.show()
             #     plt.imshow(image.detach().cpu().numpy(), 'gray')
             #     plt.show()
-            #     plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
-            #     plt.show()
+            #     # plt.imshow(images_crop[k][0].detach().cpu().numpy(), 'gray')
+            #     # plt.show()
             #     # plt.imshow(updated_renders[k][0].detach().cpu().numpy(), 'gray')
             #     # plt.show()
             #     k += 1
