@@ -167,11 +167,11 @@ class PosePredictor(nn.Module):
             #     plt.imshow(image.cpu().numpy())
             #     plt.show()
 
-            if self.features_on:
-                images_crop_original = images_crop.clone().detach()
-                images_crop = self.embednet(images_crop)
-                K_crop = get_K_crop_resize(K=K.clone(), boxes=boxes_crop,
-                                   orig_size=images.shape[-2:], crop_resize=images_crop.shape[-2:])
+            # if self.features_on:
+            #     images_crop_original = images_crop.clone().detach()
+            #     images_crop = self.embednet(images_crop)
+            #     K_crop = get_K_crop_resize(K=K.clone(), boxes=boxes_crop,
+            #                        orig_size=images.shape[-2:], crop_resize=images_crop.shape[-2:])
 
             # Pass the input images through an identity network [checking that including a network works fine]
             images_crop = self.ident_net(images_crop)

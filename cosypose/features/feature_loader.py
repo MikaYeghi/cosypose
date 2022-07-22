@@ -47,7 +47,8 @@ class FeatureLoader(nn.Module):
             for obj in obj_path:
                 obj_label = obj.split('/')[-1].split('.')[0]
                 verts, _ = load_ply(obj) # loads a tuple of (vertices, features)
-                features__ = nn.parameter.Parameter(torch.randn(size=(verts.shape[0], number_of_channels)) / np.sqrt(number_of_channels), requires_grad=True) # [MIKAEL] divide by the sqrt of num of channels
+                features__ = nn.parameter.Parameter(torch.rand(size=(verts.shape[0], number_of_channels)) / np.sqrt(number_of_channels), requires_grad=True) # [MIKAEL] divide by the sqrt of num of channels
+                # features__ = nn.parameter.Parameter(torch.randn(size=(verts.shape[0], number_of_channels)) / np.sqrt(number_of_channels), requires_grad=True) # [MIKAEL] divide by the sqrt of num of channels
                 # features__ = nn.parameter.Parameter(torch.rand(size=(verts.shape[0], number_of_channels)), requires_grad=True) # [MIKAEL] divide by the sqrt of num of channels
                 # features__ = F.one_hot(torch.randint(0, number_of_channels, (verts.shape[0],)), num_classes=number_of_channels)
                 # features__ = features__.float()

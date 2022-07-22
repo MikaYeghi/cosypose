@@ -178,19 +178,26 @@ class Pytorch3DSceneRenderer(torch.nn.Module):
                                                 max_faces_per_bin=150000,
                                             )
 
-        if self.features_on:
-            shader = FeatureShader(
-                device=self.device, 
-                cameras=cameras,
-            )
-        else:
-            lights = DirectionalLights(device=self.device, direction=((0,0,-1),)).to(self.device)
-            shader = SoftPhongShader(
-                device=self.device, 
-                cameras=cameras,
-                lights=lights,
-                blend_params=BlendParams(background_color=(0.0, 0.0, 0.0))
-            )
+        # if self.features_on:
+        #     shader = FeatureShader(
+        #         device=self.device, 
+        #         cameras=cameras,
+        #     )
+        # else:
+        #     lights = DirectionalLights(device=self.device, direction=((0,0,-1),)).to(self.device)
+        #     shader = SoftPhongShader(
+        #         device=self.device, 
+        #         cameras=cameras,
+        #         lights=lights,
+        #         blend_params=BlendParams(background_color=(0.0, 0.0, 0.0))
+        #     )
+        lights = DirectionalLights(device=self.device, direction=((0,0,-1),)).to(self.device)
+        shader = SoftPhongShader(
+            device=self.device, 
+            cameras=cameras,
+            lights=lights,
+            blend_params=BlendParams(background_color=(0.0, 0.0, 0.0))
+        )
 
         rasterizer = MeshRasterizer(
                 cameras=cameras, 

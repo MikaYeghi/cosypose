@@ -226,8 +226,8 @@ def make_cfg(args):
             # cfg.TCO_input_generator = 'gt+noise'
             cfg.TCO_input_generator = 'fixed'
             cfg.renderer = 'pytorch3d'
-            cfg.features_on = False
-            cfg.n_feature_channels = 64
+            cfg.features_on = True
+            cfg.n_feature_channels = 3
             # cfg.features_dict = "object-features-42973852719756944385"
             cfg.features_dict = None
             # cfg.resume_run_id = 'tless-refiner-custom--953637'

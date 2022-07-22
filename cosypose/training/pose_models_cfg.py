@@ -19,14 +19,15 @@ def check_update_config(config):
 
 
 def create_model_pose(cfg, renderer, mesh_db):
-    try:
-        if renderer.features_on:
-            # If renderer=pybullet and features_on=True - error pops up. Fix it.
-            n_inputs = 128
-        else:
-            n_inputs = 6
-    except Exception:
-        n_inputs = 6
+    # try:
+    #     if renderer.features_on:
+    #         # If renderer=pybullet and features_on=True - error pops up. Fix it.
+    #         n_inputs = 128
+    #     else:
+    #         n_inputs = 6
+    # except Exception:
+    #     n_inputs = 6
+    n_inputs = 6
     backbone_str = cfg.backbone_str
     if backbone_str == 'efficientnet-b3':
         backbone = EfficientNet.from_name('efficientnet-b3', in_channels=n_inputs)
